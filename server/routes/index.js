@@ -751,8 +751,6 @@ router.get('/', async function(req, res, next) {
              }
 
 
-            
-
 
              const { properties} = item;
              if(properties.length > 0) {
