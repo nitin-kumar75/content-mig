@@ -8,6 +8,48 @@ var router = express.Router();
 
 const APIURL = 'https://api-test.roompot.com';
 
+const getPath = (lang) => {
+
+  const obj = {
+    en: {
+      DOMAIN: `https://demo-parksites.roompot.com`,
+      TRAVEL_INFORMATION: `/travel-information`,
+      IN_AND_AROUND: `/in-and-around-the-house`,
+      SERVICE_CONTACT: `/service-contact`,
+      PARK_RULES: `/park-rules`,
+      ORDER_INFO: `/facilities/food-drinks/order-fresh-bread-rolls`,
+      FACILITIES: `/facilities`
+    },
+    nl: {
+      DOMAIN: `https://demo-parksites.roompot.nl`,
+      TRAVEL_INFORMATION: `/reisinformatie`,
+      IN_AND_AROUND: `/in-en-rondom-huis`,
+      SERVICE_CONTACT: `/service-contact`,
+      PARK_RULES: `/parkregels`,
+      ORDER_INFO: `/faciliteiten/eten-drinken/broodjes-bestellen`,
+      FACILITIES: `/faciliteiten`
+    },
+    de: {
+      DOMAIN: `https://demo-parksites.roompot.de`,
+      TRAVEL_INFORMATION: `/reiseinformationen`,
+      IN_AND_AROUND: `/im-und-um-das-haus-herum`,
+      SERVICE_CONTACT: `/service-kontakt`,
+      PARK_RULES: `/parkregels`,
+      ORDER_INFO: `/einrichtungen/essen-trinken/brotchen-bestellen/`,
+      FACILITIES: `/einrichtungen`
+    },
+    fe: {
+      DOMAIN: `https://demo-parksites.roompot.fr`,
+      TRAVEL_INFORMATION: `/informations-de-voyage`,
+      IN_AND_AROUND: `/dans-et-autour-de-la-maison`,
+      SERVICE_CONTACT: `/service-contact`,
+      PARK_RULES: `/reglement-du-parc`,
+      ORDER_INFO: `/equipements/restauration-boissons/commander-des-petits-pains/`,
+      FACILITIES: `/equipements`
+    }
+  }
+  return obj[lang];
+}
 
 async function authenticate() {
 
@@ -306,7 +348,7 @@ async function getOrderForms(url, lang,) {
       customerMailPreHeader,
       customerMailBody,
       parkMenuIcon,
-      category
+      category,
     } = orderFormResultsData[0];
 
     let updatedItems = [];
@@ -315,7 +357,11 @@ async function getOrderForms(url, lang,) {
       if(expandedValue && expandedValue.length > 0) {
         updatedItems = expandedValue.map((e) => {
           return {
-            name: e.name && e.name.value
+            name: e.name && e.name.value,
+            price: e.price?.value,
+            minimumOrdered: e.minimumOrdered?.value,
+            maximumOrdered: e.maximumOrdered?.value,
+            dutchNameForInternalUse: e.dutchNameForInternalUse?.value
           }
         })
       }
@@ -354,7 +400,9 @@ async function getOrderForms(url, lang,) {
 
 async function getFacilities(domain, parkName, openingTimesItems, lang) {
 
-  const facilitiesResponse = await fetchEpiServerContent(`${domain}/${parkName}/facilities`, lang);
+  const config = getPath(lang);
+
+  const facilitiesResponse = await fetchEpiServerContent(`${domain}/${parkName}${config.FACILITIES}`, lang);
 
   const facilitiesData = facilitiesResponse.data;
 
@@ -579,11 +627,17 @@ router.get('/', async function(req, res, next) {
 
     const { query } = req;
 
+    console.log(query)
+
     const lang = query.lang ? query.lang : `en`;
 
     const parkName = query.parkName ? query.parkName : `weerterbergen`;
 
-    const domain = `https://demo-parksites.roompot.com`;
+    const config = getPath(lang);
+
+    const domain = config.DOMAIN;
+
+    console.log(`${domain}/${parkName}/`)
    
     const response = await fetchEpiServerContent(`${domain}/${parkName}/`, lang);
 
@@ -609,9 +663,9 @@ router.get('/', async function(req, res, next) {
        
        const openingTimes = await getOpeningTimes(lang, authToken, obj.parkId )
 
-       const activities = await getActivities(authToken, obj.parkId);
-
        const parkDetails = await getParkDetails(lang, authToken, obj.parkId )
+
+       const activities = await getActivities(authToken, obj.parkId);
 
        const parkMapImage = await getParkMapImage(lang, authToken, obj.parkId);
 
@@ -644,7 +698,7 @@ router.get('/', async function(req, res, next) {
           
           obj.foodAndDrinks = await getFoodDrinks(foodBlocksUrl, lang, openingTimesItems);
 
-          obj.orderFormInformation = await getOrderForms(`${domain}/${parkName}/facilities/food-drinks/order-fresh-bread-rolls&expand=*`, lang)
+          obj.orderFormInformation = await getOrderForms(`${domain}/${parkName}${config.ORDER_INFO}&expand=*`, lang)
        }
        
        obj.facility = {
@@ -657,19 +711,19 @@ router.get('/', async function(req, res, next) {
        obj.vicinities = vicinities;
 
        obj.travelInfromation = {
-        ...await getMoreInformation(domain, parkName, lang, '/travel-information')
+        ...await getMoreInformation(domain, parkName, lang, config.TRAVEL_INFORMATION)
        }
 
-       obj.getInAndRoundInformation = {
-        ...await getMoreInformation(domain, parkName, lang, '/in-and-around-the-house')
+       obj.inAndRoundInformation = {
+        ...await getMoreInformation(domain, parkName, lang, config.IN_AND_AROUND)
        }
 
        obj.parkRulesInformation = {
-        ...await getMoreInformation(domain, parkName, lang, '/park-rules')
+        ...await getMoreInformation(domain, parkName, lang, config.PARK_RULES)
        }
 
        obj.serviceContactInformation = {
-        ...await getMoreInformation(domain, parkName, lang, '/service-contact')
+        ...await getMoreInformation(domain, parkName, lang, config.SERVICE_CONTACT)
        }
 
        const park = {};
