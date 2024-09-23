@@ -730,13 +730,60 @@ router.get('/', async function(req, res, next) {
        if(parkDetails) {
           const { items } = parkDetails
           if(items.length > 0) {
+
              const item = items[0];
              park.lat = item.latitude;
              park.lng = item.longitude;
+             
+             park.city = item.city;
+
+             const langs = item.lang
+             
+             const langFilter = langs && langs.filter((d) => d.language === lang);
+
+             if(langFilter && langFilter.length > 0) {
+
+              const l = langFilter[0]
+              park.parkName = l.name;
+              park.country = l.country.name;
+              park.region = l.region.name;
+
+             }
+
+
+            
+
+
              const { properties} = item;
              if(properties.length > 0) {
                 park.videos = filterProperty('park_video', properties, lang)
                 park.jimani_key = filterProperty('park_jimanikey', properties, lang)
+
+                const streetProperty = filterProperty('park_streetname', properties, lang)
+                const houseNrProperty = filterProperty('park_housenr', properties, lang)
+                const address = [];
+                if(streetProperty) {
+                  address.push(streetProperty)
+                }
+                if(houseNrProperty) {
+                  address.push(houseNrProperty)
+                }
+                if(address.length > 0) {
+                  park.address = address.join(" ")
+                }
+
+                const postalCodeProperty = filterProperty('park_postalcode', properties, lang)
+
+                if(postalCodeProperty) {
+                  park.postalCode = postalCodeProperty
+                }
+
+                const phoneNrProperty = filterProperty('park_phonenr', properties, lang)
+
+                if(phoneNrProperty) {
+                  park.phoneNr = phoneNrProperty
+                }
+  
              } 
           }
        }
@@ -753,7 +800,7 @@ router.get('/', async function(req, res, next) {
      }
 
        obj.parkDetails = {
-        ...park
+        ...park,
        }
 
        
