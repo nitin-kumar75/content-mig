@@ -138,16 +138,33 @@ async function getParkMapImage(lang, token, parkId) {
 }
 
 
-async function getActivities(token, parkId) {
+async function getActivities(token, parkId, isBookerPageId, lang) {
 
-  const url = `${APIURL}/leisure?objectId=${parkId}&auth_token=${token}`;
+  const path = isBookerPageId ?  `booker25` : `leisure`
+
+  const url = `${APIURL}/${path}?objectId=${parkId}&auth_token=${token}`;
 
   try {
     const response = await axios.get(url, {
       maxRedirects: 10,
       timeout: 30000,
     });
-    return response.data;
+
+    const data = response.data;
+
+    const items = data.items;
+
+    const activities = [];
+    items.forEach(element => {
+        const langFilter = element.lang.filter((l) => l.language === lang);
+        activities.push({
+          ...element,
+          lang: langFilter,
+          IsBooker25Activity: isBookerPageId ? true : false
+        })
+    });
+
+    return activities;
   } catch (error) {
     if (error.response) {
       console.error(`Error: ${error.response.status} - ${error.response.data}`);
@@ -167,7 +184,11 @@ async function getVicinities(token, parkId, lang) {
       timeout: 30000,
     });
 
-    return response.data;
+    const data = response.data;
+
+    const items = data.items;
+
+    return items;
   } catch (error) {
     if (error.response) {
       console.error(`Error: ${error.response.status} - ${error.response.data}`);
@@ -665,8 +686,7 @@ router.get('/', async function(req, res, next) {
 
        const parkDetails = await getParkDetails(lang, authToken, obj.parkId )
 
-       const activities = await getActivities(authToken, obj.parkId);
-
+      
        const parkMapImage = await getParkMapImage(lang, authToken, obj.parkId);
 
        const vicinities = await getVicinities(authToken, obj.parkId, lang)
@@ -706,8 +726,7 @@ router.get('/', async function(req, res, next) {
        }
 
 
-       obj.activities = activities;
-
+      
        obj.vicinities = vicinities;
 
        obj.travelInfromation = {
@@ -727,7 +746,14 @@ router.get('/', async function(req, res, next) {
        }
 
        const park = {};
+
+       let hasLeisurehubActivities = false
+               
+       let isBookerPageId = false
+               
+
        if(parkDetails) {
+
           const { items } = parkDetails
           if(items.length > 0) {
 
@@ -754,11 +780,28 @@ router.get('/', async function(req, res, next) {
 
              const { properties} = item;
              if(properties.length > 0) {
+
                 park.videos = filterProperty('park_video', properties, lang)
+
                 park.jimani_key = filterProperty('park_jimanikey', properties, lang)
 
                 const streetProperty = filterProperty('park_streetname', properties, lang)
+
                 const houseNrProperty = filterProperty('park_housenr', properties, lang)
+
+                const filterLeisurehubActivities = filterProperty('park_leisurehub_token', properties, lang)
+
+                if(filterLeisurehubActivities !== null && filterLeisurehubActivities !== '') {
+                  hasLeisurehubActivities = true;
+                }
+
+                const filterBooker25PageId = filterProperty('park_booker25_page_id', properties, lang)
+
+                if(filterBooker25PageId !== null && filterBooker25PageId !== '') {
+                  isBookerPageId = true;
+                }
+
+              
                 const address = [];
                 if(streetProperty) {
                   address.push(streetProperty)
@@ -795,11 +838,15 @@ router.get('/', async function(req, res, next) {
               park.map = filterMap('park-map-parkmap-fixed-width', pristine, lang)
            } 
         }
-     }
+       }
 
        obj.parkDetails = {
         ...park,
        }
+
+       const activities = await getActivities(authToken, obj.parkId, isBookerPageId, lang);
+
+       obj.activities = activities;
 
        
     }
