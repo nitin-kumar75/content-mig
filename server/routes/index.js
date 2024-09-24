@@ -227,7 +227,11 @@ async function getOpeningTimes(lang, token, parkId) {
 
 async function getParkDetails(lang, token, parkId) {
 
-  const url = `${APIURL}/parks/${parkId}?language=${lang}&auth_token=${token}`;
+  let url = `${APIURL}/parks/${parkId}?language=${lang}&auth_token=${token}`;
+
+  if(lang === '') {
+    url = `${APIURL}/parks/${parkId}?auth_token=${token}`;
+  }
 
   try {
     const response = await axios.get(url, {
@@ -244,11 +248,73 @@ async function getParkDetails(lang, token, parkId) {
   }
 }
 
+async function getExtractContent(lang, token, parkId, path, isParent) {
+
+  let url;
+
+  if(path === 'parks') {
+    url = `${APIURL}/${path}/${parkId}?language=${lang}&auth_token=${token}`;
+    if(lang === '') {
+      url = `${APIURL}/${path}/${parkId}?&auth_token=${token}`;
+    }
+  }
+
+  if(path === 'images') {
+    url = `${APIURL}/${path}?language=${lang}&auth_token=${token}&objectId=${parkId}`;
+    if(lang === '') {
+      url = `${APIURL}/${path}?&auth_token=${token}&objectId=${parkId}`;
+    }
+  }
+
+  if(path === 'accommodations') {
+    url = `${APIURL}/${path}?language=${lang}&auth_token=${token}&parentobjectId=${parkId}`;
+    if(lang === '') {
+      url = `${APIURL}/${path}?&auth_token=${token}&parentobjectId=${parkId}`;
+    }
+    console.log(url)
+  }
+
+
+  try {
+    const response = await axios.get(url, {
+      maxRedirects: 10,
+      timeout: 30000,
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      console.error(`Error: ${error.response.status} - ${error.response.data}`);
+    } else {
+      console.error(`Error: ${error.message}`);
+    }
+  }
+}
+
+
 async function getParkMapImage(lang, token, parkId) {
 
   const typeId = '10039';
 
   const url = `${APIURL}/images?language=${lang}&objectId=${parkId}&typeId=${typeId}&auth_token=${token}`;
+
+  try {
+    const response = await axios.get(url, {
+      maxRedirects: 10,
+      timeout: 30000,
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      console.error(`Error: ${error.response.status} - ${error.response.data}`);
+    } else {
+      console.error(`Error: ${error.message}`);
+    }
+  }
+}
+
+async function getImages(lang, token, objectId) {
+
+  const url = `${APIURL}/images?language=${lang}&objectId=${objectId}&auth_token=${token}`;
 
   try {
     const response = await axios.get(url, {
@@ -1028,8 +1094,6 @@ router.post('/login', async function(req, res, next) {
           
             const book = obj[0];
 
-            console.log(book)
-
             const reservationId  = book?.reservationId;
           
             if(reservationId) {
@@ -1046,22 +1110,21 @@ router.post('/login', async function(req, res, next) {
 
                      const accommodationItem = accommodationResourceResponse?.items[0];
 
+                     console.log(accommodationItem);
+
                      const a = {}
 
                      if(accommodationItem?.parkId) {
 
-                          const parkMapImage = await getParkMapImage(lang, apiToken, accommodationItem?.parkId);
+                          // const images = await getImages(lang, apiToken, accommodationItem?.id);
 
-                          if(parkMapImage) {
-                            const { items } = parkMapImage
-                            if(items.length > 0) {
-                              const item = items[0];
-                              const { pristine} = item;
-                              if(pristine.length > 0) {
-                                  a.map = filterMap('park-map-parkmap-fixed-width', pristine, lang)
-                              } 
-                            }
-                          }
+                        
+                          // if(images) {
+                          //   const { items } = images
+                          //   if(items.length > 0) {
+                          //     const item = items[0];
+                          //   }
+                          // }
                       }
 
                       const langFind =  accommodationItem?.lang?.find((a) => a.language === lang);
@@ -1076,7 +1139,8 @@ router.post('/login', async function(req, res, next) {
                       parkName: langFind?.parkName,
                       name: langFind?.name,
                       reservationNumber: book.reservationNumber,
-                      parkId: accommodationDetails?.parkId
+                      parkId: accommodationDetails?.parkId,
+                      accommodationResourceResponse
                      })
 
                    }
@@ -1103,6 +1167,47 @@ router.post('/login', async function(req, res, next) {
 
 
 });
+
+
+router.get('/extract-cotnent', async function(req, res, next) {
+
+  try {
+
+    const authToken = await authenticate();
+
+    const { parkId } = req.query;
+
+    const parkDetails = await getExtractContent('', authToken, parkId, 'parks' )    
+
+    const allAcommodationDetails = await getExtractContent('', authToken, parkId, 'accommodations', true ) 
+    
+    const allImagesDetails = await getExtractContent('', authToken, parkId, 'images' ) 
+    
+    res.json({
+      parkId,
+      list: [{
+        file: `Park_${parkId}.json`, 
+        data: parkDetails && parkDetails.items,
+      }, 
+      {
+        file: `All_Images_Park_${parkId}.json`, 
+        data: allImagesDetails && allImagesDetails.items,
+      },
+      {
+        file: `Acc_${parkId}.json`, 
+        data: allAcommodationDetails && allAcommodationDetails.items,
+      }
+    
+     ]
+    })
+ 
+  } catch (error) {
+    console.error('Error:', error);
+  }
+
+})
+
+
 
 
 
