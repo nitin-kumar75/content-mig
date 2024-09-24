@@ -248,28 +248,35 @@ async function getParkDetails(lang, token, parkId) {
   }
 }
 
-async function getExtractContent(lang, token, parkId, path, isParent) {
+async function getExtractContent(lang, token, objectId, path) {
 
   let url;
 
   if(path === 'parks') {
-    url = `${APIURL}/${path}/${parkId}?language=${lang}&auth_token=${token}`;
+    url = `${APIURL}/${path}/${objectId}?language=${lang}&auth_token=${token}`;
     if(lang === '') {
-      url = `${APIURL}/${path}/${parkId}?&auth_token=${token}`;
+      url = `${APIURL}/${path}/${objectId}?auth_token=${token}`;
     }
   }
 
   if(path === 'images') {
-    url = `${APIURL}/${path}?language=${lang}&auth_token=${token}&objectId=${parkId}`;
+    url = `${APIURL}/${path}?language=${lang}&auth_token=${token}&objectId=${objectId}`;
     if(lang === '') {
-      url = `${APIURL}/${path}?&auth_token=${token}&objectId=${parkId}`;
+      url = `${APIURL}/${path}?auth_token=${token}&objectId=${objectId}`;
     }
   }
 
   if(path === 'accommodations') {
-    url = `${APIURL}/${path}?language=${lang}&auth_token=${token}&parentobjectId=${parkId}`;
+    url = `${APIURL}/${path}?language=${lang}&auth_token=${token}&parentobjectId=${objectId}`;
     if(lang === '') {
-      url = `${APIURL}/${path}?&auth_token=${token}&parentobjectId=${parkId}`;
+      url = `${APIURL}/${path}?auth_token=${token}&parentobjectId=${objectId}`;
+    }
+  }
+
+  if(path === 'accommodation') {
+    url = `${APIURL}/accommodations/${objectId}?language=${lang}&auth_token=${token}`;
+    if(lang === '') {
+      url = `${APIURL}/accommodations/${objectId}?auth_token=${token}`;
     }
     console.log(url)
   }
@@ -1084,11 +1091,15 @@ router.post('/login', async function(req, res, next) {
          
         const { content } =  reservationDetailResponse;
 
+       
+
          const bookings= _.groupBy(content, 'resortId');
          
          for(const booking in bookings) {
 
           const obj = bookings[booking];
+
+          console.log(obj);
 
           if(obj.length > 0) {
           
@@ -1110,21 +1121,24 @@ router.post('/login', async function(req, res, next) {
 
                      const accommodationItem = accommodationResourceResponse?.items[0];
 
-                     console.log(accommodationItem);
 
                      const a = {}
 
                      if(accommodationItem?.parkId) {
 
-                          // const images = await getImages(lang, apiToken, accommodationItem?.id);
-
-                        
-                          // if(images) {
-                          //   const { items } = images
-                          //   if(items.length > 0) {
-                          //     const item = items[0];
-                          //   }
-                          // }
+                          const images = await getImages(lang, apiToken, accommodationItem?.objectId);
+                           
+                          if(images) {
+                            const { items } = images
+                            if(items.length > 0) {
+                              const item = items[0];
+                              const { pristine} = item;
+                              if(pristine.length > 0) {
+                                 a.image = filterMap('object-main-mob-full-frame', pristine, lang)
+                                 a.images = items;
+                              } 
+                            }
+                          }
                       }
 
                       const langFind =  accommodationItem?.lang?.find((a) => a.language === lang);
@@ -1179,10 +1193,50 @@ router.get('/extract-cotnent', async function(req, res, next) {
 
     const parkDetails = await getExtractContent('', authToken, parkId, 'parks' )    
 
-    const allAcommodationDetails = await getExtractContent('', authToken, parkId, 'accommodations', true ) 
+    const allAcommodationDetails = await getExtractContent('', authToken, parkId, 'accommodations' ) 
     
     const allImagesDetails = await getExtractContent('', authToken, parkId, 'images' ) 
-    
+
+    let accommodationObjectIds = []
+
+    if(allAcommodationDetails && allAcommodationDetails.items?.length > 0) {
+        accommodationObjectIds = allAcommodationDetails.items.map((a) => {
+          return a.objectId;
+        });
+    }
+
+    let individualAccomodation = [];
+
+    if(accommodationObjectIds.length > 0) {
+      const results = await Promise.all(accommodationObjectIds.map((u) => getExtractContent('', authToken, u, 'accommodation' )));
+      if(results.length > 0) {
+        individualAccomodation = accommodationObjectIds.map((acc, index) => {
+          const ad = results[index]
+          return {
+            file: `Acc_${acc}.json`, 
+            data: ad && ad.items
+          }
+        })
+      }
+    }
+
+    console.log(accommodationObjectIds)
+
+    let allImagesAcc = [];
+
+    if(accommodationObjectIds.length > 0) {
+      const results = await Promise.all(accommodationObjectIds.map((u) => getExtractContent('', authToken, u, 'images' )));
+      if(results.length > 0) {
+        allImagesAcc = accommodationObjectIds.map((acc, index) => {
+          const ad = results[index]
+          return {
+            file: `Acc_Images_${acc}.json`, 
+            data: ad && ad.items
+          }
+        })
+      }
+    }
+
     res.json({
       parkId,
       list: [{
@@ -1196,7 +1250,9 @@ router.get('/extract-cotnent', async function(req, res, next) {
       {
         file: `Acc_${parkId}.json`, 
         data: allAcommodationDetails && allAcommodationDetails.items,
-      }
+      },
+      ...individualAccomodation,
+      ...allImagesAcc
     
      ]
     })
