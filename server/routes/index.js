@@ -2,11 +2,17 @@ const { Curl  } = require('node-libcurl');
 
 const axios = require('axios');
 
+const moment = require('moment');
+
 var express = require('express');
 
 var router = express.Router();
 
+var _ = require('lodash');
+
 const APIURL = 'https://api-test.roompot.com';
+
+const MAXXTON_API_URL = 'https://api.maxxton.net/maxxton/v1';
 
 const getPath = (lang) => {
 
@@ -77,6 +83,128 @@ async function authenticate() {
     }
   }
 }
+
+async function maxxtonAuthenticate() {
+
+  const url = `${MAXXTON_API_URL}/authenticate?client_id=EmakinaAPI&client_secret=WBFVK8JD4F8ATGDY5JJU0599NZI34FFV&grant_type=client_credentials&scope=rvp`;
+
+ 
+  try {
+    const response = await axios.post(url, {}, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      maxRedirects: 10,
+      timeout: 30000,
+    });
+
+    return response.data.access_token
+  } catch (error) {
+    if (error.response) {
+      console.error(`Error: ${error.response.status} - ${error.response.data}`);
+    } else {
+      console.error(`Error: ${error.message}`);
+    }
+  }
+}
+
+async function getCustomerLogin(token, body) {
+
+  const url = `${MAXXTON_API_URL}/customers/login`;
+ 
+  try {
+    const response = await axios.post(url, body, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      maxRedirects: 10,
+      timeout: 30000,
+    });
+    return response.data
+  } catch (error) {
+    if (error.response) {
+      console.error(`Error: ${error.response.status} - ${error.response.data}`);
+    } else {
+      console.error(`Error: ${error.message}`);
+    }
+  }
+}
+
+async function getReservationDetail(token, customerId) {
+
+  const url = `${MAXXTON_API_URL}/reservations/details?filter=customerId:${customerId}&departureDate>:${moment().format("YYYY-MM-DD")}&status>0&returnSections=RESERVEDRESOURCES&sort=departureDate,desc`;
+ 
+  console.log(url);
+
+  try {
+    const response = await axios.get(url,  {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      maxRedirects: 10,
+      timeout: 30000,
+    });
+
+    return response.data
+  } catch (error) {
+    if (error.response) {
+      console.error(`Error: ${error.response.status} - ${error.response.data}`);
+    } else {
+      console.error(`Error: ${error.message}`);
+    }
+  }
+}
+
+async function getReservationContent(token, reservationId) {
+
+  const url = `${MAXXTON_API_URL}/reservations/${reservationId}/content`;
+ 
+  try {
+    const response = await axios.get(url,  {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      maxRedirects: 10,
+      timeout: 30000,
+    });
+
+    return response.data
+  } catch (error) {
+    if (error.response) {
+      console.error(`Error: ${error.response.status} - ${error.response.data}`);
+    } else {
+      console.error(`Error: ${error.message}`);
+    }
+  }
+}
+
+async function getAccommodationByResourceId(token, resourceId) {
+
+  const url = `${APIURL}/accommodations?resourceId=${resourceId}&supplierId=51&auth_token=${token}`;
+
+  try {
+    const response = await axios.get(url,  {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      maxRedirects: 10,
+      timeout: 30000,
+    });
+
+    return response.data
+  } catch (error) {
+    if (error.response) {
+      console.error(`Error: ${error.response.status} - ${error.response.data}`);
+    } else {
+      console.log(error)
+      console.error(`Error: ${error.message}`);
+    }
+  }
+}
+
 
 async function getOpeningTimes(lang, token, parkId) {
 
@@ -860,5 +988,122 @@ router.get('/', async function(req, res, next) {
 
 
 });
+
+router.post('/login', async function(req, res, next) {
+
+  try {
+
+    const authToken = await maxxtonAuthenticate();
+
+    const apiToken = await authenticate();
+
+    const { username, password, lang } = req.body;
+
+    const loginRes = await getCustomerLogin(authToken, {
+      login:username,
+      password
+    })
+
+    let result= {};
+
+    const accommodationDetails = [];
+
+    if(loginRes) {
+      
+      const { customerId } = loginRes;
+
+      const reservationDetailResponse = await getReservationDetail(authToken, customerId);
+
+      if(reservationDetailResponse) {
+         
+        const { content } =  reservationDetailResponse;
+
+         const bookings= _.groupBy(content, 'resortId');
+         
+         for(const booking in bookings) {
+
+          const obj = bookings[booking];
+
+          if(obj.length > 0) {
+          
+            const book = obj[0];
+
+            console.log(book)
+
+            const reservationId  = book?.reservationId;
+          
+            if(reservationId) {
+              const reservationContentResponse = await getReservationContent(authToken, reservationId);
+              if(reservationContentResponse && reservationContentResponse?.content?.length > 0) {
+                 const findResContent = reservationContentResponse?.content.find((r) => r.type === 'ACCOMMODATIONTYPE');
+                 if(findResContent) {
+
+                   const { resourceId } = findResContent;
+                 
+                   const accommodationResourceResponse = await getAccommodationByResourceId(apiToken, resourceId);
+
+                   if(accommodationResourceResponse && accommodationResourceResponse?.items?.length > 0) {
+
+                     const accommodationItem = accommodationResourceResponse?.items[0];
+
+                     const a = {}
+
+                     if(accommodationItem?.parkId) {
+
+                          const parkMapImage = await getParkMapImage(lang, apiToken, accommodationItem?.parkId);
+
+                          if(parkMapImage) {
+                            const { items } = parkMapImage
+                            if(items.length > 0) {
+                              const item = items[0];
+                              const { pristine} = item;
+                              if(pristine.length > 0) {
+                                  a.map = filterMap('park-map-parkmap-fixed-width', pristine, lang)
+                              } 
+                            }
+                          }
+                      }
+
+                      const langFind =  accommodationItem?.lang?.find((a) => a.language === lang);
+
+
+                     accommodationDetails.push({
+                      ...a,
+                      arrival: book.expectedArrivalDateTime,
+                      departure: book.expectedDepartureDateTime,
+                      status: book.status,
+                      accommodationType : accommodationItem.isCampingSite ? 1 : 0,
+                      parkName: langFind?.parkName,
+                      name: langFind?.name,
+                      reservationNumber: book.reservationNumber,
+                      parkId: accommodationDetails?.parkId
+                     })
+
+                   }
+                 }
+
+              }
+            }
+          }
+         }
+      }
+
+
+    }
+
+    res.json({
+      accommodationDetails,
+      profile:loginRes
+    })
+ 
+  } catch (error) {
+    console.error('Error:', error);
+  }
+
+
+
+});
+
+
 
 module.exports = router;
