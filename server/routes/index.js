@@ -1106,6 +1106,8 @@ router.post('/login', async function(req, res, next) {
             const book = obj[0];
 
             const reservationId  = book?.reservationId;
+
+            console.log(book)
           
             if(reservationId) {
               const reservationContentResponse = await getReservationContent(authToken, reservationId);
@@ -1135,7 +1137,6 @@ router.post('/login', async function(req, res, next) {
                               const { pristine} = item;
                               if(pristine.length > 0) {
                                  a.image = filterMap('object-main-mob-full-frame', pristine, lang)
-                                 a.images = items;
                               } 
                             }
                           }
