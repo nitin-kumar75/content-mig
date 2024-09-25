@@ -220,7 +220,7 @@ const MyForm = () => {
       <Tabs value={topTabValue} onChange={handleTopTabChange}>
           <Tab label="Park Detail" />
           <Tab label="Reservation Detail" />
-          <Tab label="Extract Content" />
+          {/* <Tab label="Extract Content" /> */}
       </Tabs>
 
       { topTabValue === 0 && (

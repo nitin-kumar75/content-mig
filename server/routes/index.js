@@ -1170,7 +1170,6 @@ router.post('/login', async function(req, res, next) {
                       name: langFind?.name,
                       reservationNumber: book.reservationNumber,
                       parkId: accommodationDetails?.parkId,
-                      accommodationResourceResponse
                      })
 
                    }
