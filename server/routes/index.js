@@ -135,8 +135,6 @@ async function getReservationDetail(token, customerId) {
 
   const url = `${MAXXTON_API_URL}/reservations/details?filter=customerId:${customerId}&departureDate>:${moment().format("YYYY-MM-DD")}&status>0&returnSections=RESERVEDRESOURCES&sort=departureDate,desc`;
  
-  console.log(url);
-
   try {
     const response = await axios.get(url,  {
       headers: {
@@ -199,7 +197,6 @@ async function getAccommodationByResourceId(token, resourceId) {
     if (error.response) {
       console.error(`Error: ${error.response.status} - ${error.response.data}`);
     } else {
-      console.log(error)
       console.error(`Error: ${error.message}`);
     }
   }
@@ -248,6 +245,29 @@ async function getParkDetails(lang, token, parkId) {
   }
 }
 
+async function getParks(lang, token, page) {
+
+  let url = `${APIURL}/parks?language=${lang}&auth_token=${token}&type=index&page=${page}`;
+
+  if(lang === '') {
+    url = `${APIURL}/parks?auth_token=${token}&type=index&page=${page}`;
+  }
+
+  try {
+    const response = await axios.get(url, {
+      maxRedirects: 10,
+      timeout: 30000,
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      console.error(`Error: ${error.response.status} - ${error.response.data}`);
+    } else {
+      console.error(`Error: ${error.message}`);
+    }
+  }
+}
+
 async function getExtractContent(lang, token, objectId, path) {
 
   let url;
@@ -278,7 +298,7 @@ async function getExtractContent(lang, token, objectId, path) {
     if(lang === '') {
       url = `${APIURL}/accommodations/${objectId}?auth_token=${token}`;
     }
-    console.log(url)
+   
   }
 
 
@@ -849,8 +869,7 @@ router.get('/', async function(req, res, next) {
 
     const { query } = req;
 
-    console.log(query)
-
+   
     const lang = query.lang ? query.lang : `en`;
 
     const parkName = query.parkName ? query.parkName : `weerterbergen`;
@@ -859,8 +878,7 @@ router.get('/', async function(req, res, next) {
 
     const domain = config.DOMAIN;
 
-    console.log(`${domain}/${parkName}/`)
-   
+    
     const response = await fetchEpiServerContent(`${domain}/${parkName}/`, lang);
 
     const data = response.data;
@@ -1099,16 +1117,13 @@ router.post('/login', async function(req, res, next) {
 
           const obj = bookings[booking];
 
-          console.log(obj);
-
+         
           if(obj.length > 0) {
           
             const book = obj[0];
 
             const reservationId  = book?.reservationId;
 
-            console.log(book)
-          
             if(reservationId) {
               const reservationContentResponse = await getReservationContent(authToken, reservationId);
               if(reservationContentResponse && reservationContentResponse?.content?.length > 0) {
@@ -1184,6 +1199,54 @@ router.post('/login', async function(req, res, next) {
 });
 
 
+router.get('/parks', async function(req, res, next) {
+
+  try {
+
+    const authToken = await authenticate();
+
+    const parkDetails = await getParks('', authToken, 1)    
+
+    const numpages = parkDetails?.page?.numpages 
+
+    let parks = []
+
+    let items = parkDetails.items;
+
+    let promises = []
+   
+    for(let i = 2; i <= numpages; i++) {
+      promises.push(getParks('', authToken, i))
+    }
+
+    const results = await Promise.all(promises);
+    
+    if(results.length > 0) {
+      for(let i = 0; i < results.length; i++) {
+          const item = results[i].items;
+          items.push(
+            ...item
+          )
+      }
+    }
+     
+    parks = items.map((a) => {
+      const langF = a.lang.find((l) => l.language === 'en')
+      return {
+        objectId: a.objectId,
+        name: langF && langF.name      
+      }
+    });
+
+    res.json(parks)
+ 
+  } catch (error) {
+    console.error('Error:', error);
+  }
+
+})
+
+
 router.get('/extract-cotnent', async function(req, res, next) {
 
   try {
@@ -1221,7 +1284,6 @@ router.get('/extract-cotnent', async function(req, res, next) {
       }
     }
 
-    console.log(accommodationObjectIds)
 
     let allImagesAcc = [];
 

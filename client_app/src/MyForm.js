@@ -15,6 +15,8 @@ import {
   Typography,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper 
 } from '@mui/material';
+import { Autocomplete } from '@mui/material';
+
 import axios from 'axios';
 import './MyForm.css'; // Import your CSS for the overlay
 import ReactJson from 'react-json-view'
@@ -36,6 +38,8 @@ const MyForm = () => {
 
   const [loading, setLoading] = useState(false);
 
+  const [parks, setParks] = useState([]);
+
   const [responseData, setResponseData] = useState(null);
 
   const [loginResponseData, setLoginResponseData] = useState(null);
@@ -45,6 +49,8 @@ const MyForm = () => {
   const [tabValue, setTabValue] = useState(0);
 
   const [topTabValue, setTopTabValue] = useState(0);
+
+  const options = [];
 
 
   const handleTextChange = (event) => {
@@ -59,8 +65,8 @@ const MyForm = () => {
     setPassword(event.target.value);
   };
 
-  const handleParkId = (event) => {
-    setParkId(event.target.value);
+  const handleParkId = (event, newValue) => {
+    setParkId(newValue?.id);
   };
 
   const handleTabChange = (event, newValue) => {
@@ -69,6 +75,9 @@ const MyForm = () => {
 
   const handleTopTabChange = (event, newValue) => {
     setTabValue(0)
+    if(newValue === 2 && parks.length === 0) {
+      getParks();
+    }
     setTopTabValue(newValue);
   };
 
@@ -109,7 +118,28 @@ const MyForm = () => {
       });
       setLoginResponseData(response.data);
     } catch (error) {
-      console.error('Error fetching data:', error);
+   
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getParks = async () => {
+   
+    setLoading(true);
+    setResponseData(null);
+
+    try {
+      const response = await axios.get(`http://localhost:3003/parks`, {
+      });
+      setParks(response.data.map((a) => {
+        return {
+           label: `${a.name} - ${a.objectId}`,
+           id: a.objectId
+        }
+      }));
+    } catch (error) {
+   
     } finally {
       setLoading(false);
     }
@@ -269,7 +299,16 @@ const MyForm = () => {
             <div style={{marginTop: 20}}> 
               <Grid container spacing={2} alignItems="center">
                 <Grid item xs={4}>
-                  <TextField
+
+                <Autocomplete
+                  disablePortal
+                  options={parks}
+                  onChange={handleParkId}
+                  renderInput={(params) => <TextField {...params} label="Select Park" />}
+                />
+
+
+                  {/* <TextField
                     label="Enter Park Id"
                     variant="outlined"
                     fullWidth
@@ -278,7 +317,7 @@ const MyForm = () => {
                     InputProps={{
                       style: { textAlign: 'left' } // Align text left
                     }}
-                  />
+                  /> */}
                 </Grid>
               
                 <Grid item xs={4}>
