@@ -1148,11 +1148,20 @@ router.post('/login', async function(req, res, next) {
                           if(images) {
                             const { items } = images
                             if(items.length > 0) {
-                              const item = items[0];
-                              const { pristine} = item;
-                              if(pristine.length > 0) {
-                                 a.image = filterMap('object-main-mob-full-frame', pristine, lang)
-                              } 
+                              let data = items.map((x) => {
+                                if(x.typeId == 10007){
+                                  var d = x.pristine.filter((p) => {
+                                     if(p.size.sizeId == 10057) {
+                                       return p.lang;
+                                     }
+                                   })[0]?.lang[0]?.uri;
+                                 }
+                                 return d;
+                              })
+                              a.image = data.find(x=>{
+                                if(!_.isNil(x))
+                                return x;
+                              });
                             }
                           }
                       }
