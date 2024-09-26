@@ -119,7 +119,7 @@ const MyForm = () => {
     setResponseData(null);
 
     try {
-      const response = await axios.post(`http://localhost:3003/login`, {
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}login`, {
         username,
         password,
         lang: selectedOption,
@@ -189,13 +189,15 @@ const MyForm = () => {
     
   }
 
+ 
+
   const getParks = async () => {
    
     setLoading(true);
     setResponseData(null);
 
     try {
-      const response = await axios.get(`http://localhost:3003/parks`, {
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}parks`, {
       });
       setParks(response.data.map((a) => {
         return {
@@ -214,7 +216,7 @@ const MyForm = () => {
     setLoading(true);
 
     try {
-      const response = await axios.get(`http://localhost:3003/digital-key?reservationNumber=${reservationNumber}`, {
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}digital-key?reservationNumber=${reservationNumber}`, {
       });
       console.log(response.data)
     } catch (error) {

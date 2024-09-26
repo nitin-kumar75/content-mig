@@ -8,6 +8,7 @@
 /.pnp
 .pnp.js
 /server/.env
+/client_app/.env
 # testing
 /coverage
 

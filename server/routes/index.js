@@ -1247,6 +1247,8 @@ router.post('/login', async function(req, res, next) {
          }
       }
 
+    } else {
+      res.status(404).send("Username or Password is incorrect");
     }
 
   
