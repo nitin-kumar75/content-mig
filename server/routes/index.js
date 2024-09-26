@@ -12,7 +12,11 @@ var _ = require('lodash');
 
 const APIURL = 'https://api-test.roompot.com';
 
-const MAXXTON_API_URL = 'https://api.maxxton.net/maxxton/v1';
+//const MAXXTON_API_URL = 'https://api.maxxton.net/maxxton/v1';
+
+const MAXXTON_API_URL = 'https://api-test.maxxton.net/maxxton/v1/';
+
+const KC_API_URL = 'https://rvp-test.kcsmartho.me/api';
 
 const getPath = (lang) => {
 
@@ -86,9 +90,10 @@ async function authenticate() {
 
 async function maxxtonAuthenticate() {
 
+  // const url = `${MAXXTON_API_URL}/authenticate?client_id=EmakinaAPI&client_secret=WBFVK8JD4F8ATGDY5JJU0599NZI34FFV&grant_type=client_credentials&scope=rvp`;
+
   const url = `${MAXXTON_API_URL}/authenticate?client_id=EmakinaAPI&client_secret=WBFVK8JD4F8ATGDY5JJU0599NZI34FFV&grant_type=client_credentials&scope=rvp`;
 
- 
   try {
     const response = await axios.post(url, {}, {
       headers: {
@@ -99,6 +104,58 @@ async function maxxtonAuthenticate() {
     });
 
     return response.data.access_token
+  } catch (error) {
+    if (error.response) {
+      console.error(`Error: ${error.response.status} - ${error.response.data}`);
+    } else {
+      console.error(`Error: ${error.message}`);
+    }
+  }
+}
+
+async function kcAuthenticate() {
+
+  // const url = `${MAXXTON_API_URL}/authenticate?client_id=EmakinaAPI&client_secret=WBFVK8JD4F8ATGDY5JJU0599NZI34FFV&grant_type=client_credentials&scope=rvp`;
+
+  const url = `${KC_API_URL}/OAuth2/authenticate?client_id=Emakina&client_secret=Ujx887U8bmDaKTukOGrZ3aBNgGE3&grant_type=client_credentials`;
+
+  try {
+    const response = await axios.post(url, {}, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      maxRedirects: 10,
+      timeout: 30000,
+    });
+
+    return response.data.access_token
+  } catch (error) {
+    if (error.response) {
+      console.error(`Error: ${error.response.status} - ${error.response.data}`);
+    } else {
+      console.error(`Error: ${error.message}`);
+    }
+  }
+}
+
+async function getKCReservationDetail(token, reservationNumber) {
+
+  const url = `${KC_API_URL}/Reservation?filter=Number::${reservationNumber}&page=0&size=1`;
+
+  console.log(url)
+ 
+  
+  try {
+    const response = await axios.get(url,  {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      maxRedirects: 10,
+      timeout: 30000,
+    });
+
+    return response.data
   } catch (error) {
     if (error.response) {
       console.error(`Error: ${error.response.status} - ${error.response.data}`);
@@ -1095,6 +1152,7 @@ router.post('/login', async function(req, res, next) {
       password
     })
 
+   
     let result= {};
 
     const accommodationDetails = [];
@@ -1116,6 +1174,8 @@ router.post('/login', async function(req, res, next) {
          for(const booking in bookings) {
 
           const obj = bookings[booking];
+
+        
 
          
           if(obj.length > 0) {
@@ -1178,7 +1238,7 @@ router.post('/login', async function(req, res, next) {
                       parkName: langFind?.parkName,
                       name: langFind?.name,
                       reservationNumber: book.reservationNumber,
-                      parkId: accommodationDetails?.parkId,
+                      parkId: accommodationItem?.parkId,
                      })
 
                    }
@@ -1190,12 +1250,12 @@ router.post('/login', async function(req, res, next) {
          }
       }
 
-
     }
 
+  
     res.json({
       accommodationDetails,
-      profile:loginRes
+      profile:loginRes,
     })
  
   } catch (error) {
@@ -1333,6 +1393,35 @@ router.get('/extract-cotnent', async function(req, res, next) {
   }
 
 })
+
+
+router.get('/digital-key', async function(req, res, next) {
+
+  try {
+
+    const authToken = await kcAuthenticate();
+
+    const { reservationNumber } =  req.query;
+
+    const reservationDetail = await getKCReservationDetail(authToken, reservationNumber)
+
+    const parkId = '552324'
+
+
+   
+    res.json({
+      ...reservationDetail
+    })
+ 
+  } catch (error) {
+    console.error('Error:', error);
+  }
+
+
+
+});
+
+
 
 
 

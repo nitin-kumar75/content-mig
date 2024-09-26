@@ -24,6 +24,10 @@ import {JsonTable} from 'react-json-to-html';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
+import ReservationDetails from './reservation'
+
+const moment = require('moment');
+
 const MyForm = () => {
 
   const [inputValue, setInputValue] = useState('');
@@ -32,9 +36,9 @@ const MyForm = () => {
   
   const [selectedOption, setSelectedOption] = useState('en');
 
-  const [username, setUsername] = useState('Sutikhna.nayak@gmail.com');
+  const [username, setUsername] = useState('nenad_maljugic@epam.com');
 
-  const [password, setPassword] = useState('Roompotlandal.com');
+  const [password, setPassword] = useState('Roompot1234!@');
 
   const [loading, setLoading] = useState(false);
 
@@ -49,6 +53,8 @@ const MyForm = () => {
   const [tabValue, setTabValue] = useState(0);
 
   const [topTabValue, setTopTabValue] = useState(0);
+
+  const [isShowDigitalKey, setDigitalKey] = useState(false)
 
   const options = [];
 
@@ -105,6 +111,8 @@ const MyForm = () => {
     }
   };
 
+ 
+
   const handleLoginSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
@@ -116,6 +124,10 @@ const MyForm = () => {
         password,
         lang: selectedOption,
       });
+
+      const { accommodationDetails } = response.data;
+
+     
       setLoginResponseData(response.data);
     } catch (error) {
    
@@ -123,6 +135,59 @@ const MyForm = () => {
       setLoading(false);
     }
   };
+
+  const getCustomerBooking = (accommodations, parkId) => {
+  
+  
+    const accommodationItem = accommodations.find((a) => a.parkId === parkId)
+
+    let c_btatus = ''
+  
+    if(!accommodationItem) {
+      c_btatus = "NoBooking"   
+    }
+  
+    const status = accommodationItem.status;
+    const formatArrival = moment(accommodationItem.arrival).format('YYYY-MM-DD')
+    const formatDeparture = moment(accommodationItem.departure).format('YYYY-MM-DD')
+    const arrivalDate = moment(accommodationItem.arrival);
+    const departureDate = moment(accommodationItem.departure);
+    const accommodationParkId = accommodationItem.parkId;
+    const reservationNumber= accommodationItem.reservationNumber;
+    const currentDate = moment()
+  
+    if(arrivalDate.isAfter(currentDate) && status !== 31) {
+      c_btatus = "OnArrivalDay"
+    }
+    
+  
+    if (arrivalDate.isAfter(currentDate)) {
+      c_btatus = "BeforeOnArrivalDay"
+    }
+  
+  
+    if (departureDate.isBefore(currentDate) && departureDate.isSame(currentDate) && status === 41) {
+      c_btatus = "BeforeDeparture"
+    }
+  
+    if ((arrivalDate.isBefore(currentDate) && (departureDate.isSame(currentDate) || departureDate.isAfter(currentDate))) && status === 31) {
+      c_btatus = "DuringStay"
+    }
+  
+    // if (Departure.AddDays(RPConstants.MaxAfterDepartureDays) >= DateTime.Now || (Departure.Date == DateTime.Now.Date && Departure >= DateTime.Now && Status == NewyseApiClient.CheckedOutStatus))
+    //   {
+    //       return CustomerBookingStatus.AfterDeparture;
+    //   }
+
+    return {
+      reservationNumber,
+      status: c_btatus
+    }
+    
+  
+  
+    
+  }
 
   const getParks = async () => {
    
@@ -220,7 +285,7 @@ const MyForm = () => {
       <Tabs value={topTabValue} onChange={handleTopTabChange}>
           <Tab label="Park Detail" />
           <Tab label="Reservation Detail" />
-          {/* <Tab label="Extract Content" /> */}
+          <Tab label="Extract Content" />
       </Tabs>
 
       { topTabValue === 0 && (
@@ -360,24 +425,12 @@ const MyForm = () => {
       
 
       { topTabValue === 1 && loginResponseData && (
-        <Box sx={{ mt: 2, borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs value={tabValue} onChange={handleTabChange}>
-              <Tab label="Raw Json" />
-              <Tab label="Table Format" />
-            </Tabs>
-          {tabValue === 0 && (
-            <Box sx={{ p: 2 }}>
-              <Typography variant="body1">Raw Response Data:</Typography>
-              <ReactJson src={loginResponseData} collapsed={1}/>
-            </Box>
-          )}
-          {tabValue === 1 && (
-            <Box sx={{ p: 2 }}>
-              <Typography variant="body1">Formatted Response Data:</Typography>
-              <JsonTable json={loginResponseData}  />
-            </Box>
-          )}
-        </Box>
+        <div style={{marginTop: 10}}>
+           { loginResponseData.accommodationDetails.map((item, index) => {
+              return (<ReservationDetails key={index} reservation={item} ></ReservationDetails>) 
+           })
+          }
+        </div>
       )}    
 
       { topTabValue === 2 && extractResponseData &&  extractResponseData?.list?.length > 0 && (
