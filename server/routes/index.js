@@ -10,13 +10,13 @@ var router = express.Router();
 
 var _ = require('lodash');
 
-const APIURL = 'https://api-test.roompot.com';
+const APIURL = process.env.APIURL;
 
-//const MAXXTON_API_URL = 'https://api.maxxton.net/maxxton/v1';
+console.log(process.env.MAXXTON_API_URL)
 
-const MAXXTON_API_URL = 'https://api-test.maxxton.net/maxxton/v1/';
+const MAXXTON_API_URL = process.env.MAXXTON_API_URL;
 
-const KC_API_URL = 'https://rvp-test.kcsmartho.me/api';
+const KC_API_URL = process.env.KC_API_URL;
 
 const getPath = (lang) => {
 
@@ -65,9 +65,11 @@ async function authenticate() {
 
   const url = `${APIURL}/auth`;
 
+  console.log(url)
+
   const data = new URLSearchParams({
-    username: 'parksites_demo2',
-    password: 'hmdd3Dalvt5TIDf2X6yYchj5zzV0ceaU',
+    username: process.env.API_USERNAME,
+    password: process.env.API_PASSWORD,
   });
 
   try {
@@ -90,9 +92,8 @@ async function authenticate() {
 
 async function maxxtonAuthenticate() {
 
-  // const url = `${MAXXTON_API_URL}/authenticate?client_id=EmakinaAPI&client_secret=WBFVK8JD4F8ATGDY5JJU0599NZI34FFV&grant_type=client_credentials&scope=rvp`;
-
-  const url = `${MAXXTON_API_URL}/authenticate?client_id=EmakinaAPI&client_secret=WBFVK8JD4F8ATGDY5JJU0599NZI34FFV&grant_type=client_credentials&scope=rvp`;
+  
+  const url = `${MAXXTON_API_URL}/authenticate?client_id=${process.env.MAX_CLIENT}&client_secret=${process.env.MAX_SEC}&grant_type=client_credentials&scope=rvp`;
 
   try {
     const response = await axios.post(url, {}, {
@@ -115,9 +116,8 @@ async function maxxtonAuthenticate() {
 
 async function kcAuthenticate() {
 
-  // const url = `${MAXXTON_API_URL}/authenticate?client_id=EmakinaAPI&client_secret=WBFVK8JD4F8ATGDY5JJU0599NZI34FFV&grant_type=client_credentials&scope=rvp`;
-
-  const url = `${KC_API_URL}/OAuth2/authenticate?client_id=Emakina&client_secret=Ujx887U8bmDaKTukOGrZ3aBNgGE3&grant_type=client_credentials`;
+ 
+  const url = `${KC_API_URL}/OAuth2/authenticate?client_id=${process.env.KC_CLIENT}&client_secret=${process.env.KC_SEC}&grant_type=client_credentials`;
 
   try {
     const response = await axios.post(url, {}, {
@@ -1403,14 +1403,37 @@ router.get('/digital-key', async function(req, res, next) {
 
     const { reservationNumber } =  req.query;
 
-    const reservationDetail = await getKCReservationDetail(authToken, reservationNumber)
+    const KcReservationDetail = await getKCReservationDetail(authToken, reservationNumber)
+    
+    let isBluetoothLock = false;
 
-    const parkId = '552324'
+    let findLocks = {};
+
+    if(KcReservationDetail?.Data?.length > 0) {
+      const  ReservationItems= KcReservationDetail.Data[0]?.ReservationItems;
+      if(ReservationItems.length > 0) {
+        const resItem = ReservationItems[0];
+        const Locks = resItem.Object?.Locks;
+        if(Locks.length) {
+          const findD = Locks.find((l) => l.Ble.UseBle)
+          console.log(findD)
+          if(findD) {
+            findLocks = findD;
+            isBluetoothLock = true;
+          }
+        }
+     
+      }
+    }
+
+    if(!isBluetoothLock) {
+      res.status(404).send("Not able to found bluetooth lock");
+    }
 
 
    
     res.json({
-      ...reservationDetail
+      ...findLocks
     })
  
   } catch (error) {

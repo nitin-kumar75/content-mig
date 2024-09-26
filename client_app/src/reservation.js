@@ -9,7 +9,7 @@ import {
 const moment = require('moment');
 
 
-const getCustomerBooking = (accommodationItem, parkId) => {
+const getCustomerBooking = (accommodationItem, parkId, getDigitalKey) => {
   
   
   let c_btatus = ''
@@ -59,7 +59,7 @@ const getCustomerBooking = (accommodationItem, parkId) => {
   
 }
 
-const ReservationDetails = ({ reservation, parkId }) => {
+const ReservationDetails = ({ reservation, parkId, getDigitalKey }) => {
   const { 
     image, 
     arrival, 
@@ -86,7 +86,7 @@ const ReservationDetails = ({ reservation, parkId }) => {
       <p><strong>Status:</strong> {status === 31 ? 'Confirmed' : 'Pending'}</p>
       <p><strong>Accommodation Type:</strong> {accommodationType === 0 ? 'Beach House' : 'Other'}</p>
       { customerBooking?.status === "DuringStay" &&   
-          <Button variant="contained" color="primary" type="button">
+          <Button variant="contained" onClick={()=> getDigitalKey(reservationNumber)} color="primary" type="button">
                  Get Digital Key
               </Button>
       }

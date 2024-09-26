@@ -210,6 +210,20 @@ const MyForm = () => {
     }
   };
 
+  const getDigitalKey = async (reservationNumber) => {
+    setLoading(true);
+
+    try {
+      const response = await axios.get(`http://localhost:3003/digital-key?reservationNumber=${reservationNumber}`, {
+      });
+      console.log(response.data)
+    } catch (error) {
+   
+    } finally { 
+      setLoading(false);
+    }
+  }
+
   const handleExtractSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
@@ -427,7 +441,7 @@ const MyForm = () => {
       { topTabValue === 1 && loginResponseData && (
         <div style={{marginTop: 10}}>
            { loginResponseData.accommodationDetails.map((item, index) => {
-              return (<ReservationDetails key={index} reservation={item} ></ReservationDetails>) 
+              return (<ReservationDetails key={index} reservation={item} getDigitalKey={getDigitalKey}></ReservationDetails>) 
            })
           }
         </div>
