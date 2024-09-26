@@ -12,7 +12,6 @@ var _ = require('lodash');
 
 const APIURL = process.env.APIURL;
 
-console.log(process.env.MAXXTON_API_URL)
 
 const MAXXTON_API_URL = process.env.MAXXTON_API_URL;
 
@@ -64,8 +63,6 @@ const getPath = (lang) => {
 async function authenticate() {
 
   const url = `${APIURL}/auth`;
-
-  console.log(url)
 
   const data = new URLSearchParams({
     username: process.env.API_USERNAME,
