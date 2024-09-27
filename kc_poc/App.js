@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import DeviceModal from "./DeviceConnectionModal";
 import useBLE from "./useBLE";
+import BluetoothModal from "./BluetootheModal"
 
 const App = () => {
   const {
@@ -23,6 +24,8 @@ const App = () => {
   } = useBLE();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
+
+  const [ isBlueToothVisible, setBluetoothModalVisible] = useState(false)
 
   
   const scanForDevices = async () => {
@@ -53,7 +56,10 @@ const App = () => {
           <>
            <View>
             <Text style={styles.heartRateTitleText}>Connected</Text> 
-            <TouchableOpacity onPress={() => writeData(connectedDevice, 'Test Data')} style={styles.ctaButton}>
+            <TouchableOpacity onPress={() => 
+                 //writeData(connectedDevice, 'Test Data')
+                 setBluetoothModalVisible(true)
+              } style={styles.ctaButton}>
               <Text style={styles.ctaButtonText}>Open Door</Text>
             </TouchableOpacity>
             </View>
@@ -73,6 +79,7 @@ const App = () => {
         connectToPeripheral={connectToDevice}
         devices={allDevices}
       />
+      <BluetoothModal visible={isBlueToothVisible} onClose={() => setBluetoothModalVisible(false)}></BluetoothModal>
     </SafeAreaView>
   );
 };
