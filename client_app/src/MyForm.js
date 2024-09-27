@@ -15,12 +15,18 @@ import {
   Typography,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper 
 } from '@mui/material';
+import { Autocomplete } from '@mui/material';
+
 import axios from 'axios';
 import './MyForm.css'; // Import your CSS for the overlay
 import ReactJson from 'react-json-view'
 import {JsonTable} from 'react-json-to-html';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+
+import ReservationDetails from './reservation'
+
+const moment = require('moment');
 
 const MyForm = () => {
 
@@ -30,11 +36,13 @@ const MyForm = () => {
   
   const [selectedOption, setSelectedOption] = useState('en');
 
-  const [username, setUsername] = useState('Sutikhna.nayak@gmail.com');
+  const [username, setUsername] = useState('nenad_maljugic@epam.com');
 
-  const [password, setPassword] = useState('Roompotlandal.com');
+  const [password, setPassword] = useState('Roompot1234!@');
 
   const [loading, setLoading] = useState(false);
+
+  const [parks, setParks] = useState([]);
 
   const [responseData, setResponseData] = useState(null);
 
@@ -45,6 +53,10 @@ const MyForm = () => {
   const [tabValue, setTabValue] = useState(0);
 
   const [topTabValue, setTopTabValue] = useState(0);
+
+  const [isShowDigitalKey, setDigitalKey] = useState(false)
+
+  const options = [];
 
 
   const handleTextChange = (event) => {
@@ -59,8 +71,8 @@ const MyForm = () => {
     setPassword(event.target.value);
   };
 
-  const handleParkId = (event) => {
-    setParkId(event.target.value);
+  const handleParkId = (event, newValue) => {
+    setParkId(newValue?.id);
   };
 
   const handleTabChange = (event, newValue) => {
@@ -69,6 +81,9 @@ const MyForm = () => {
 
   const handleTopTabChange = (event, newValue) => {
     setTabValue(0)
+    if(newValue === 2 && parks.length === 0) {
+      getParks();
+    }
     setTopTabValue(newValue);
   };
 
@@ -96,24 +111,120 @@ const MyForm = () => {
     }
   };
 
+ 
+
   const handleLoginSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
     setResponseData(null);
 
     try {
-      const response = await axios.post(`http://localhost:3003/login`, {
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}login`, {
         username,
         password,
         lang: selectedOption,
       });
+
+      const { accommodationDetails } = response.data;
+
+     
       setLoginResponseData(response.data);
     } catch (error) {
-      console.error('Error fetching data:', error);
+   
     } finally {
       setLoading(false);
     }
   };
+
+  const getCustomerBooking = (accommodations, parkId) => {
+  
+  
+    const accommodationItem = accommodations.find((a) => a.parkId === parkId)
+
+    let c_btatus = ''
+  
+    if(!accommodationItem) {
+      c_btatus = "NoBooking"   
+    }
+  
+    const status = accommodationItem.status;
+    const formatArrival = moment(accommodationItem.arrival).format('YYYY-MM-DD')
+    const formatDeparture = moment(accommodationItem.departure).format('YYYY-MM-DD')
+    const arrivalDate = moment(accommodationItem.arrival);
+    const departureDate = moment(accommodationItem.departure);
+    const accommodationParkId = accommodationItem.parkId;
+    const reservationNumber= accommodationItem.reservationNumber;
+    const currentDate = moment()
+  
+    if(arrivalDate.isAfter(currentDate) && status !== 31) {
+      c_btatus = "OnArrivalDay"
+    }
+    
+  
+    if (arrivalDate.isAfter(currentDate)) {
+      c_btatus = "BeforeOnArrivalDay"
+    }
+  
+  
+    if (departureDate.isBefore(currentDate) && departureDate.isSame(currentDate) && status === 41) {
+      c_btatus = "BeforeDeparture"
+    }
+  
+    if ((arrivalDate.isBefore(currentDate) && (departureDate.isSame(currentDate) || departureDate.isAfter(currentDate))) && status === 31) {
+      c_btatus = "DuringStay"
+    }
+  
+    // if (Departure.AddDays(RPConstants.MaxAfterDepartureDays) >= DateTime.Now || (Departure.Date == DateTime.Now.Date && Departure >= DateTime.Now && Status == NewyseApiClient.CheckedOutStatus))
+    //   {
+    //       return CustomerBookingStatus.AfterDeparture;
+    //   }
+
+    return {
+      reservationNumber,
+      status: c_btatus
+    }
+    
+  
+  
+    
+  }
+
+ 
+
+  const getParks = async () => {
+   
+    setLoading(true);
+    setResponseData(null);
+
+    try {
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}parks`, {
+      });
+      setParks(response.data.map((a) => {
+        return {
+           label: `${a.name} - ${a.objectId}`,
+           id: a.objectId
+        }
+      }));
+    } catch (error) {
+   
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getDigitalKey = async (reservationNumber) => {
+    setLoading(true);
+
+    try {
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}digital-key?reservationNumber=${reservationNumber}`, {
+      });
+      console.log(response.data)
+    } catch (error) {
+   
+    } finally { 
+      setLoading(false);
+    }
+  }
 
   const handleExtractSubmit = async (event) => {
     event.preventDefault();
@@ -269,7 +380,16 @@ const MyForm = () => {
             <div style={{marginTop: 20}}> 
               <Grid container spacing={2} alignItems="center">
                 <Grid item xs={4}>
-                  <TextField
+
+                <Autocomplete
+                  disablePortal
+                  options={parks}
+                  onChange={handleParkId}
+                  renderInput={(params) => <TextField {...params} label="Select Park" />}
+                />
+
+
+                  {/* <TextField
                     label="Enter Park Id"
                     variant="outlined"
                     fullWidth
@@ -278,7 +398,7 @@ const MyForm = () => {
                     InputProps={{
                       style: { textAlign: 'left' } // Align text left
                     }}
-                  />
+                  /> */}
                 </Grid>
               
                 <Grid item xs={4}>
@@ -321,24 +441,12 @@ const MyForm = () => {
       
 
       { topTabValue === 1 && loginResponseData && (
-        <Box sx={{ mt: 2, borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs value={tabValue} onChange={handleTabChange}>
-              <Tab label="Raw Json" />
-              <Tab label="Table Format" />
-            </Tabs>
-          {tabValue === 0 && (
-            <Box sx={{ p: 2 }}>
-              <Typography variant="body1">Raw Response Data:</Typography>
-              <ReactJson src={loginResponseData} collapsed={1}/>
-            </Box>
-          )}
-          {tabValue === 1 && (
-            <Box sx={{ p: 2 }}>
-              <Typography variant="body1">Formatted Response Data:</Typography>
-              <JsonTable json={loginResponseData}  />
-            </Box>
-          )}
-        </Box>
+        <div style={{marginTop: 10}}>
+           { loginResponseData.accommodationDetails.map((item, index) => {
+              return (<ReservationDetails key={index} reservation={item} getDigitalKey={getDigitalKey}></ReservationDetails>) 
+           })
+          }
+        </div>
       )}    
 
       { topTabValue === 2 && extractResponseData &&  extractResponseData?.list?.length > 0 && (

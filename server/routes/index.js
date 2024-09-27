@@ -10,9 +10,12 @@ var router = express.Router();
 
 var _ = require('lodash');
 
-const APIURL = 'https://api-test.roompot.com';
+const APIURL = process.env.APIURL;
 
-const MAXXTON_API_URL = 'https://api.maxxton.net/maxxton/v1';
+
+const MAXXTON_API_URL = process.env.MAXXTON_API_URL;
+
+const KC_API_URL = process.env.KC_API_URL;
 
 const getPath = (lang) => {
 
@@ -62,8 +65,8 @@ async function authenticate() {
   const url = `${APIURL}/auth`;
 
   const data = new URLSearchParams({
-    username: 'parksites_demo2',
-    password: 'hmdd3Dalvt5TIDf2X6yYchj5zzV0ceaU',
+    username: process.env.API_USERNAME,
+    password: process.env.API_PASSWORD,
   });
 
   try {
@@ -86,9 +89,9 @@ async function authenticate() {
 
 async function maxxtonAuthenticate() {
 
-  const url = `${MAXXTON_API_URL}/authenticate?client_id=EmakinaAPI&client_secret=WBFVK8JD4F8ATGDY5JJU0599NZI34FFV&grant_type=client_credentials&scope=rvp`;
+  
+  const url = `${MAXXTON_API_URL}/authenticate?client_id=${process.env.MAX_CLIENT}&client_secret=${process.env.MAX_SEC}&grant_type=client_credentials&scope=rvp`;
 
- 
   try {
     const response = await axios.post(url, {}, {
       headers: {
@@ -99,6 +102,57 @@ async function maxxtonAuthenticate() {
     });
 
     return response.data.access_token
+  } catch (error) {
+    if (error.response) {
+      console.error(`Error: ${error.response.status} - ${error.response.data}`);
+    } else {
+      console.error(`Error: ${error.message}`);
+    }
+  }
+}
+
+async function kcAuthenticate() {
+
+ 
+  const url = `${KC_API_URL}/OAuth2/authenticate?client_id=${process.env.KC_CLIENT}&client_secret=${process.env.KC_SEC}&grant_type=client_credentials`;
+
+  try {
+    const response = await axios.post(url, {}, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      maxRedirects: 10,
+      timeout: 30000,
+    });
+
+    return response.data.access_token
+  } catch (error) {
+    if (error.response) {
+      console.error(`Error: ${error.response.status} - ${error.response.data}`);
+    } else {
+      console.error(`Error: ${error.message}`);
+    }
+  }
+}
+
+async function getKCReservationDetail(token, reservationNumber) {
+
+  const url = `${KC_API_URL}/Reservation?filter=Number::${reservationNumber}&page=0&size=1`;
+
+  console.log(url)
+ 
+  
+  try {
+    const response = await axios.get(url,  {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      maxRedirects: 10,
+      timeout: 30000,
+    });
+
+    return response.data
   } catch (error) {
     if (error.response) {
       console.error(`Error: ${error.response.status} - ${error.response.data}`);
@@ -135,8 +189,6 @@ async function getReservationDetail(token, customerId) {
 
   const url = `${MAXXTON_API_URL}/reservations/details?filter=customerId:${customerId}&departureDate>:${moment().format("YYYY-MM-DD")}&status>0&returnSections=RESERVEDRESOURCES&sort=departureDate,desc`;
  
-  console.log(url);
-
   try {
     const response = await axios.get(url,  {
       headers: {
@@ -199,7 +251,6 @@ async function getAccommodationByResourceId(token, resourceId) {
     if (error.response) {
       console.error(`Error: ${error.response.status} - ${error.response.data}`);
     } else {
-      console.log(error)
       console.error(`Error: ${error.message}`);
     }
   }
@@ -248,6 +299,29 @@ async function getParkDetails(lang, token, parkId) {
   }
 }
 
+async function getParks(lang, token, page) {
+
+  let url = `${APIURL}/parks?language=${lang}&auth_token=${token}&type=index&page=${page}`;
+
+  if(lang === '') {
+    url = `${APIURL}/parks?auth_token=${token}&type=index&page=${page}`;
+  }
+
+  try {
+    const response = await axios.get(url, {
+      maxRedirects: 10,
+      timeout: 30000,
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      console.error(`Error: ${error.response.status} - ${error.response.data}`);
+    } else {
+      console.error(`Error: ${error.message}`);
+    }
+  }
+}
+
 async function getExtractContent(lang, token, objectId, path) {
 
   let url;
@@ -278,7 +352,7 @@ async function getExtractContent(lang, token, objectId, path) {
     if(lang === '') {
       url = `${APIURL}/accommodations/${objectId}?auth_token=${token}`;
     }
-    console.log(url)
+   
   }
 
 
@@ -849,8 +923,7 @@ router.get('/', async function(req, res, next) {
 
     const { query } = req;
 
-    console.log(query)
-
+   
     const lang = query.lang ? query.lang : `en`;
 
     const parkName = query.parkName ? query.parkName : `weerterbergen`;
@@ -859,8 +932,7 @@ router.get('/', async function(req, res, next) {
 
     const domain = config.DOMAIN;
 
-    console.log(`${domain}/${parkName}/`)
-   
+    
     const response = await fetchEpiServerContent(`${domain}/${parkName}/`, lang);
 
     const data = response.data;
@@ -1077,6 +1149,7 @@ router.post('/login', async function(req, res, next) {
       password
     })
 
+   
     let result= {};
 
     const accommodationDetails = [];
@@ -1099,16 +1172,15 @@ router.post('/login', async function(req, res, next) {
 
           const obj = bookings[booking];
 
-          console.log(obj);
+        
 
+         
           if(obj.length > 0) {
           
             const book = obj[0];
 
             const reservationId  = book?.reservationId;
 
-            console.log(book)
-          
             if(reservationId) {
               const reservationContentResponse = await getReservationContent(authToken, reservationId);
               if(reservationContentResponse && reservationContentResponse?.content?.length > 0) {
@@ -1133,11 +1205,20 @@ router.post('/login', async function(req, res, next) {
                           if(images) {
                             const { items } = images
                             if(items.length > 0) {
-                              const item = items[0];
-                              const { pristine} = item;
-                              if(pristine.length > 0) {
-                                 a.image = filterMap('object-main-mob-full-frame', pristine, lang)
-                              } 
+                              let data = items.map((x) => {
+                                if(x.typeId == 10007){
+                                  var d = x.pristine.filter((p) => {
+                                     if(p.size.sizeId == 10057) {
+                                       return p.lang;
+                                     }
+                                   })[0]?.lang[0]?.uri;
+                                 }
+                                 return d;
+                              })
+                              a.image = data.find(x=>{
+                                if(!_.isNil(x))
+                                return x;
+                              });
                             }
                           }
                       }
@@ -1154,8 +1235,7 @@ router.post('/login', async function(req, res, next) {
                       parkName: langFind?.parkName,
                       name: langFind?.name,
                       reservationNumber: book.reservationNumber,
-                      parkId: accommodationDetails?.parkId,
-                      accommodationResourceResponse
+                      parkId: accommodationItem?.parkId,
                      })
 
                    }
@@ -1167,12 +1247,14 @@ router.post('/login', async function(req, res, next) {
          }
       }
 
-
+    } else {
+      res.status(404).send("Username or Password is incorrect");
     }
 
+  
     res.json({
       accommodationDetails,
-      profile:loginRes
+      profile:loginRes,
     })
  
   } catch (error) {
@@ -1182,6 +1264,54 @@ router.post('/login', async function(req, res, next) {
 
 
 });
+
+
+router.get('/parks', async function(req, res, next) {
+
+  try {
+
+    const authToken = await authenticate();
+
+    const parkDetails = await getParks('', authToken, 1)    
+
+    const numpages = parkDetails?.page?.numpages 
+
+    let parks = []
+
+    let items = parkDetails.items;
+
+    let promises = []
+   
+    for(let i = 2; i <= numpages; i++) {
+      promises.push(getParks('', authToken, i))
+    }
+
+    const results = await Promise.all(promises);
+    
+    if(results.length > 0) {
+      for(let i = 0; i < results.length; i++) {
+          const item = results[i].items;
+          items.push(
+            ...item
+          )
+      }
+    }
+     
+    parks = items.map((a) => {
+      const langF = a.lang.find((l) => l.language === 'en')
+      return {
+        objectId: a.objectId,
+        name: langF && langF.name      
+      }
+    });
+
+    res.json(parks)
+ 
+  } catch (error) {
+    console.error('Error:', error);
+  }
+
+})
 
 
 router.get('/extract-cotnent', async function(req, res, next) {
@@ -1221,7 +1351,6 @@ router.get('/extract-cotnent', async function(req, res, next) {
       }
     }
 
-    console.log(accommodationObjectIds)
 
     let allImagesAcc = [];
 
@@ -1263,6 +1392,58 @@ router.get('/extract-cotnent', async function(req, res, next) {
   }
 
 })
+
+
+router.get('/digital-key', async function(req, res, next) {
+
+  try {
+
+    const authToken = await kcAuthenticate();
+
+    const { reservationNumber } =  req.query;
+
+    const KcReservationDetail = await getKCReservationDetail(authToken, reservationNumber)
+    
+    let isBluetoothLock = false;
+
+    let findLocks = {};
+
+    if(KcReservationDetail?.Data?.length > 0) {
+      const  ReservationItems= KcReservationDetail.Data[0]?.ReservationItems;
+      if(ReservationItems.length > 0) {
+        const resItem = ReservationItems[0];
+        const Locks = resItem.Object?.Locks;
+        if(Locks.length) {
+          const findD = Locks.find((l) => l.Ble.UseBle)
+          console.log(findD)
+          if(findD) {
+            findLocks = findD;
+            isBluetoothLock = true;
+          }
+        }
+     
+      }
+    }
+
+    if(!isBluetoothLock) {
+      res.status(404).send("Not able to found bluetooth lock");
+    }
+
+
+   
+    res.json({
+      ...findLocks
+    })
+ 
+  } catch (error) {
+    console.error('Error:', error);
+  }
+
+
+
+});
+
+
 
 
 
