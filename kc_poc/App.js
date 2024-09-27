@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  Button,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -16,25 +17,33 @@ const App = () => {
     connectToDevice,
     color,
     requestPermissions,
+    bluetoothState,
+    writeData,
     scanForPeripherals,
   } = useBLE();
+
   const [isModalVisible, setIsModalVisible] = useState(false);
 
+  
   const scanForDevices = async () => {
-    console.log(',,,,,nin....')
     const isPermissionsEnabled = await requestPermissions();
     if (isPermissionsEnabled) {
       scanForPeripherals();
     }
   };
 
+
   const hideModal = () => {
     setIsModalVisible(false);
   };
 
   const openModal = async () => {
-    scanForDevices();
-    setIsModalVisible(true);
+    if(bluetoothState === 'PoweredOn') {
+      scanForDevices();
+      setIsModalVisible(true);
+    } else {
+      alert('Please turn on bluetooth')
+    }
   };
 
   return (
@@ -42,11 +51,16 @@ const App = () => {
       <View style={styles.heartRateTitleWrapper}>
         {connectedDevice ? (
           <>
-            <Text style={styles.heartRateTitleText}>Connected</Text>
+           <View>
+            <Text style={styles.heartRateTitleText}>Connected</Text> 
+            <TouchableOpacity onPress={() => writeData(connectedDevice, 'Test Data')} style={styles.ctaButton}>
+              <Text style={styles.ctaButtonText}>Open Door</Text>
+            </TouchableOpacity>
+            </View>
           </>
         ) : (
           <Text style={styles.heartRateTitleText}>
-            Please connect the Arduino
+            Please connect the AirPods Pro
           </Text>
         )}
       </View>

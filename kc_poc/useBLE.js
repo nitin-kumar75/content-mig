@@ -1,10 +1,18 @@
 /* eslint-disable no-bitwise */
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { PermissionsAndroid, Platform } from "react-native";
 
 import * as ExpoDevice from "expo-device";
 
 import base64 from "react-native-base64";
+
+const serviceID = "d3810001-96ad-447f-a62f-fd0e6460d4d6";
+  
+const sendCharacteristicID = "d3810003-96ad-447f-a62f-fd0e6460d4d6";
+
+const readCharacteristicID = "d3810002-96ad-447f-a62f-fd0e6460d4d6";
+
+
 
 import {
   BleError,
@@ -13,15 +21,44 @@ import {
   Device,
 } from "react-native-ble-plx";
 
-const DATA_SERVICE_UUID = "19b10000-e8f2-537e-4f6c-d104768a1214";
-const COLOR_CHARACTERISTIC_UUID = "19b10001-e8f2-537e-4f6c-d104768a1217";
-
 const bleManager = new BleManager();
 
 function useBLE() {
+
   const [allDevices, setAllDevices] = useState([]);
+
   const [connectedDevice, setConnectedDevice] = useState(null);
+
+  const [bluetoothState, setBluetoothState] = useState('unknown');
+
   const [color, setColor] = useState("white");
+
+  useEffect(() => {
+
+    const checkBluetoothState = async () => {
+      // Request permissions on Android
+      if (Platform.OS === 'android') {
+        await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
+      }
+
+      bleManager.onStateChange((state) => {
+        if (state === 'PoweredOn') {
+          setBluetoothState('PoweredOn');
+          console.log('Bluetooth is enabled');
+        } else {
+          setBluetoothState('Unknown');
+          console.log('Bluetooth is not enabled');
+        }
+      }, true);
+    };
+
+    checkBluetoothState();
+
+    return () => {
+      manager.destroy();
+    };
+  }, []);
+
 
   const requestAndroid31Permissions = async () => {
     const bluetoothScanPermission = await PermissionsAndroid.request(
@@ -81,14 +118,32 @@ function useBLE() {
 
   const connectToDevice = async (device) => {
     try {
-      const deviceConnection = await bleManager.connectToDevice(device.id);
-      setConnectedDevice(deviceConnection);
-      await deviceConnection.discoverAllServicesAndCharacteristics();
-      bleManager.stopDeviceScan();
-
-      startStreamingData(deviceConnection);
+      if(device.id) {
+        const deviceConnection = await bleManager.connectToDevice(device.id);
+        setConnectedDevice(device);
+        await deviceConnection.discoverAllServicesAndCharacteristics();
+        bleManager.stopDeviceScan();
+        startStreamingData(deviceConnection);
+      }
     } catch (e) {
       console.log("FAILED TO CONNECT", e);
+    }
+  }
+
+  const writeData = async (device, data) => {
+    try {
+      alert(device.id)
+      const deviceConnection = await bleManager.writeCharacteristicWithResponseForDevice(
+        device.id,
+        serviceID,
+        sendCharacteristicID,
+        base64.encode(data)
+      );
+      alert('Unlocked Door')
+    } catch (e) {
+      alert('Failed to unlock door')
+      alert(JSON.stringify(e));
+      console.log("FAILED TO Open Door", e);
     }
   };
 
@@ -101,11 +156,9 @@ function useBLE() {
         console.log(error);
       }
 
-      console.log(device);
-
       if (
         device &&
-        (device.localName === "Arduino" || device.name === "Arduino")
+        (device.localName === "AirPods Pro" || device.name === "AirPods Pro")
       ) {
         setAllDevices((prevState) => {
           if (!isDuplicteDevice(prevState, device)) {
@@ -142,11 +195,11 @@ function useBLE() {
     setColor(color);
   };
 
-  const startStreamingData = async (devices) => {
+  const startStreamingData = async (device) => {
     if (device) {
       device.monitorCharacteristicForService(
-        DATA_SERVICE_UUID,
-        COLOR_CHARACTERISTIC_UUID,
+        serviceID,
+        sendCharacteristicID,
         onDataUpdate
       );
     } else {
@@ -159,9 +212,11 @@ function useBLE() {
     allDevices,
     connectedDevice,
     color,
+    bluetoothState,
     requestPermissions,
     scanForPeripherals,
     startStreamingData,
+    writeData
   };
 }
 
