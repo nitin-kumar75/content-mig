@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import EvilIcons from '@expo/vector-icons/EvilIcons';
 import AntDesign from '@expo/vector-icons/AntDesign';
 
 const BluetoothModal = ({ visible, onClose }) => {
@@ -17,14 +18,13 @@ const BluetoothModal = ({ visible, onClose }) => {
 
           <View style={styles.statusContainer}>
             <Text style={styles.status}>
-            <AntDesign name="stepforward" size={24} color="black" />
-              <Ionicons name="checkmark-circle" size={20} color="green" /> Bluetooth Turned On
+               Bluetooth Turned On <EvilIcons name="spinner" size={24} color="black" />
             </Text>
             <Text style={styles.status}>
-              <Ionicons name="checkmark-circle" size={20} color="green" /> Bluetooth Permission Granted
+               Bluetooth Permission Granted <EvilIcons name="spinner" size={24} color="black" />
             </Text>
             <Text style={styles.status}>
-              <Ionicons name="checkmark-circle" size={20} color="green" /> Device Found
+               Device Found <EvilIcons name="spinner" size={24} color="black" />
             </Text>
           </View>
 

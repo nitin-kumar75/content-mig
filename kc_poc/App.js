@@ -8,50 +8,53 @@ import {
   View,
 } from "react-native";
 import DeviceModal from "./DeviceConnectionModal";
-import useBLE from "./useBLE";
+// import useBLE from "./useBLE";
 import BluetoothModal from "./BluetootheModal"
 
+import Layout from './screens/layout'
+
 const App = () => {
-  const {
-    allDevices,
-    connectedDevice,
-    connectToDevice,
-    color,
-    requestPermissions,
-    bluetoothState,
-    writeData,
-    scanForPeripherals,
-  } = useBLE();
+  // const {
+  //   allDevices,
+  //   connectedDevice,
+  //   connectToDevice,
+  //   color,
+  //   requestPermissions,
+  //   bluetoothState,
+  //   writeData,
+  //   scanForPeripherals,
+  // } = useBLE();
 
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  // const [isModalVisible, setIsModalVisible] = useState(false);
 
-  const [ isBlueToothVisible, setBluetoothModalVisible] = useState(false)
+  // const [ isBlueToothVisible, setBluetoothModalVisible] = useState(false)
 
   
-  const scanForDevices = async () => {
-    const isPermissionsEnabled = await requestPermissions();
-    if (isPermissionsEnabled) {
-      scanForPeripherals();
-    }
-  };
+  // const scanForDevices = async () => {
+  //   const isPermissionsEnabled = await requestPermissions();
+  //   if (isPermissionsEnabled) {
+  //     scanForPeripherals();
+  //   }
+  // };
 
 
-  const hideModal = () => {
-    setIsModalVisible(false);
-  };
+  // const hideModal = () => {
+  //   setIsModalVisible(false);
+  // };
 
-  const openModal = async () => {
-    if(bluetoothState === 'PoweredOn') {
-      scanForDevices();
-      setIsModalVisible(true);
-    } else {
-      alert('Please turn on bluetooth')
-    }
-  };
+  // const openModal = async () => {
+  //   if(bluetoothState === 'PoweredOn') {
+  //     scanForDevices();
+  //     setIsModalVisible(true);
+  //   } else {
+  //     alert('Please turn on bluetooth')
+  //   }
+  // };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: color }]}>
-      <View style={styles.heartRateTitleWrapper}>
+    <SafeAreaView style={[styles.container]}>
+      <Layout />
+      {/* <View style={styles.heartRateTitleWrapper}>
         {connectedDevice ? (
           <>
            <View>
@@ -79,7 +82,7 @@ const App = () => {
         connectToPeripheral={connectToDevice}
         devices={allDevices}
       />
-      <BluetoothModal visible={isBlueToothVisible} onClose={() => setBluetoothModalVisible(false)}></BluetoothModal>
+      <BluetoothModal visible={isBlueToothVisible} onClose={() => setBluetoothModalVisible(false)}></BluetoothModal> */}
     </SafeAreaView>
   );
 };
