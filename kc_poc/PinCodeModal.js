@@ -1,10 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import EvilIcons from '@expo/vector-icons/EvilIcons';
-import AntDesign from '@expo/vector-icons/AntDesign';
 
-const BluetoothModal = ({ visible, onClose }) => {
+
+const PinCodeModal = ({ code, visible, onClose }) => {
+
   return (
     <Modal
       animationType="slide"
@@ -14,29 +13,14 @@ const BluetoothModal = ({ visible, onClose }) => {
     >
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
-          <Text style={styles.title}>Bluetooth Connection</Text>
+          <Text style={styles.title}>Use Pincode to unlock the door</Text>
 
           <View style={styles.statusContainer}>
             <Text style={styles.status}>
-               Bluetooth Turned On <EvilIcons name="spinner" size={24} color="black" />
-            </Text>
-            <Text style={styles.status}>
-               Bluetooth Permission Granted <EvilIcons name="spinner" size={24} color="black" />
-            </Text>
-            <Text style={styles.status}>
-               Device Found <EvilIcons name="spinner" size={24} color="black" />
+                 {code}
             </Text>
           </View>
 
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.button} onPress={() => {/* Unlock functionality */}}>
-              <Text style={styles.buttonText}>Unlock Door</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.button} onPress={() => {/* Show Pin Code functionality */}}>
-              <Text style={styles.buttonText}>Show Pin Code</Text>
-            </TouchableOpacity>
-          </View>
-          
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Text style={styles.closeButtonText}>Close</Text>
           </TouchableOpacity>
@@ -70,12 +54,15 @@ const styles = StyleSheet.create({
   statusContainer: {
     width: '100%',
     marginBottom: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   status: {
     fontSize: 16,
     marginVertical: 5,
     flexDirection: 'row',
     alignItems: 'center',
+    fontWeight: 'bold'
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -109,4 +96,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default BluetoothModal;
+export default PinCodeModal;

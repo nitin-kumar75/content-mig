@@ -52,7 +52,6 @@ const Login = (props) => {
         reservation: accommodationDetails
       })
     } catch (error) {
-   console.log(JSON.stringify(error))
     } finally {
       setLoading(false);
     }

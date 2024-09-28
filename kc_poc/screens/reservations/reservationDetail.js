@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, Button, StyleSheet, FlatList } from 'react-native';
+import { View, Text, Image, Button, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import ModalActivityIndicator from 'react-native-modal-activityindicator'
-import BluetoothModal from "./../../BluetootheModal"
+
 
 import moment from 'moment';
 import axios from 'axios';
+
 
 const getCustomerBooking = (accommodationItem, parkId) => {
   let c_status = '';
@@ -19,7 +20,7 @@ const getCustomerBooking = (accommodationItem, parkId) => {
   const departureDate = moment(accommodationItem.departure);
   const currentDate = moment();
 
- 
+    
   if (arrivalDate.isAfter(currentDate) && status !== 31) {
     c_status = 'OnArrivalDay';
   }
@@ -50,6 +51,9 @@ const getCustomerBooking = (accommodationItem, parkId) => {
 };
 
 const ReservationDetails = ({ route, parkId }) => {
+
+  
+
   const navigation = useNavigation();
   
   const { reservation } = route.params;
@@ -58,25 +62,22 @@ const ReservationDetails = ({ route, parkId }) => {
 
   const [resData, setRes] = useState(null)
 
-  const [ isBlueToothVisible, setBluetoothModalVisible] = useState(false)
-
-
+  
   const [loading, setLoading] = useState(false);
 
   const getDigitalKey = async (reservationNumber) => {
     
     setLoading(true);
 
-    alert(reservationNumber)
-    
     try {
 
       const response = await axios.get(`http://3.108.61.39:8080/digital-key?reservationNumber=${reservationNumber}`, {
       });
 
-      setRes(response.data)
+      navigation.navigate('permission',{
+        data: response.data,
+      })
       
-      setBluetoothModalVisible(true)
       
     } catch (error) {
     } finally {
@@ -89,58 +90,74 @@ const ReservationDetails = ({ route, parkId }) => {
       title: 'Reservation',
       headerLeft: () => null,
     });
-  }, [navigation]);
+  }, []);
 
   return (
    // View style={styles.container}
-     <>
-      <FlatList
-        keyExtractor={(item, index) => index.toString()}
-        data={reservation}
-        //  extraData={overviewOrder}
-        renderItem={({ item }) => (
-          <View style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 10, padding: 15, backgroundColor: '#FFF', margin: 10 }}>
-            <Image source={{ uri: item.image }} style={styles.image} />
-            <Text style={styles.title}>{item.name}</Text>
-            <Text>
-              <Text style={styles.bold}>Park Name:</Text> {item.parkName}
-            </Text>
-            <Text>
-              <Text style={styles.bold}>Reservation Number:</Text>{' '}
-              {item.reservationNumber}
-            </Text>
-            <Text>
-              <Text style={styles.bold}>Arrival:</Text>{' '}
-              {moment(item.arrival).format('LLL')}
-            </Text>
-            <Text>
-              <Text style={styles.bold}>Departure:</Text>{' '}
-              {moment(item.departure).format('LLL')}
-            </Text>
-            <Text>
-              <Text style={styles.bold}>Status:</Text>{' '}
-              {item.status === 31 ? 'Confirmed' : 'Pending'}
-            </Text>
-            <Text>
-              <Text style={styles.bold}>Accommodation Type:</Text>{' '}
-              {item.accommodationType === 0 ? 'Beach House' : 'Other'}
-            </Text>
-
-            {getCustomerBooking(item, parkId)?.status === 'DuringStay' && (
-              <Button
-                title="Get Digital Key"
-                onPress={() => getDigitalKey(item.reservationNumber)}
-              />
-            )}
-         
-          </View>
-        )}
-        
-      />
-         <ModalActivityIndicator visible={loading} size='large' color='white' />
-            <BluetoothModal visible={isBlueToothVisible} onClose={() => setBluetoothModalVisible(false)}></BluetoothModal> 
   
-      </>
+     <>
+         { reservation && reservation.length > 0 ?
+            <>
+            <FlatList
+              keyExtractor={(item, index) => index.toString()}
+              data={reservation}
+              //  extraData={overviewOrder}
+              renderItem={({ item }) => (
+                <View style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 10, padding: 15, backgroundColor: '#FFF', margin: 10 }}>
+                  <Image source={{ uri: item.image }} style={styles.image} />
+                  <Text style={styles.title}>{item.name}</Text>
+                  <Text>
+                    <Text style={styles.bold}>Park Name:</Text> {item.parkName}
+                  </Text>
+                  <Text>
+                    <Text style={styles.bold}>Reservation Number:</Text>{' '}
+                    {item.reservationNumber}
+                  </Text>
+                  <Text>
+                    <Text style={styles.bold}>Arrival:</Text>{' '}
+                    {moment(item.arrival).format('LLL')}
+                  </Text>
+                  <Text>
+                    <Text style={styles.bold}>Departure:</Text>{' '}
+                    {moment(item.departure).format('LLL')}
+                  </Text>
+                  <Text>
+                    <Text style={styles.bold}>Status:</Text>{' '}
+                    {item.status === 31 ? 'Confirmed' : 'Pending'}
+                  </Text>
+                  <Text>
+                    <Text style={styles.bold}>Accommodation Type:</Text>{' '}
+                    {item.accommodationType === 0 ? 'Beach House' : 'Other'}
+                  </Text>
+
+                  {getCustomerBooking(item, parkId)?.status === 'DuringStay' && (
+
+                        <View style={styles.buttonContainer}>
+                          <TouchableOpacity style={styles.button} onPress={() => getDigitalKey(item.reservationNumber)}>
+                              <Text style={styles.buttonText}>Get Digital Key</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                    
+                  )}
+              
+                </View>
+              )}
+              
+            />
+              <ModalActivityIndicator visible={loading} size='large' color='white' />
+            </>
+        : <View> 
+          
+          <Text>No Able To Find Reservation Detail. Please login again.</Text> 
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('login') }>
+                  <Text style={styles.buttonText}>Login</Text>
+                </TouchableOpacity>
+            </View>
+          
+          </View> }
+        </>
   );
 };
 
@@ -166,6 +183,24 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   bold: {
+    fontWeight: 'bold',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 15,
+  },
+  button: {
+    flex: 1,
+    backgroundColor: '#007BFF',
+    paddingVertical: 10,
+    marginHorizontal: 5,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: 'white',
     fontWeight: 'bold',
   },
 });

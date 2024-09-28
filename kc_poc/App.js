@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import DeviceModal from "./DeviceConnectionModal";
 // import useBLE from "./useBLE";
-import BluetoothModal from "./BluetootheModal"
+import BluetoothModal from "./PinCodeModal"
 
 import Layout from './screens/layout'
 

@@ -54,9 +54,7 @@ function useBLE() {
 
     checkBluetoothState();
 
-    return () => {
-      manager.destroy();
-    };
+    
   }, []);
 
 
@@ -121,8 +119,8 @@ function useBLE() {
       if(device.id) {
         const deviceConnection = await bleManager.connectToDevice(device.id);
         setConnectedDevice(device);
-        await deviceConnection.discoverAllServicesAndCharacteristics();
-        bleManager.stopDeviceScan();
+        // await deviceConnection.discoverAllServicesAndCharacteristics();
+        // bleManager.stopDeviceScan();
         startStreamingData(deviceConnection);
       }
     } catch (e) {
