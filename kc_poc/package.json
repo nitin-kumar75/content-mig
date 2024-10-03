@@ -10,6 +10,7 @@
     "build:ios": "react-native bundle --entry-file='index.js' --bundle-output='./ios/main.jsbundle' --dev=false --platform='ios'"
   },
   "dependencies": {
+    "@react-native-clipboard/clipboard": "^1.14.2",
     "@react-native-community/masked-view": "^0.1.11",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.11.0",

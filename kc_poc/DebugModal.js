@@ -1,16 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 
 
 const Item = ({item}) => (
-    <View style={styles.item}>
-      <Text style={styles.title}>{item.name}</Text>
-      <Text style={styles.text}>{item.manuData}</Text>
-    </View>
+    // <View style={styles.item}>
+    //   {Object.keys(item).map((key) => (
+    //     <Text style={styles.title} key={key}>{key}: {Array.isArray(item[key])? <Item item={item[key]}/> : item[key]}</Text>
+    //   ))}
+    //   {/* <Text style={styles.title}>Name - {item.name}</Text>
+    //   <Text style={styles.text}>ManufacturerData - {item.manuData}</Text> */}
+    // </View>
+    renderKeys(item)
 );
 
-const DebugModal = ({ devices, visible, onClose }) => {
+const renderKeys = (data) => {
+  return Object.keys(data).map((key) => {
+    const value = data[key];
+    if (Array.isArray(value)) {
+      return (
+        <View key={key} style={{ marginBottom: 10 }}>
+          <Text style={{ fontWeight: 'bold' }}>{key}:</Text>
+          {value.map((item, index) => (
+            <Text key={index}>- {JSON.stringify(item)}</Text>
+          ))}
+        </View>
+      );
+    }
+    if (typeof value === 'object' && value !== null) {
+      return (
+        <View key={key} style={{ marginBottom: 10 }}>
+          <Text style={{ fontWeight: 'bold' }}>{key}:</Text>
+          {renderKeys(value)}
+        </View>
+      );
+    }
+    return (
+      <Text key={key}>
+        {key}: {String(value)}
+      </Text>
+    );
+  });
+};
 
+const DebugModal = ({ devices, visible, copyData, onClose }) => {
+
+  // console.log("DebugModal devices - ", devices)
  
   return (
     <Modal
@@ -21,14 +56,28 @@ const DebugModal = ({ devices, visible, onClose }) => {
     >
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
-            <FlatList
+            {/* <FlatList
                 data={devices}
                 renderItem={({item}) => <Item item={item} />}
+                // renderItem={({item}) => renderKeys(item)}
                 keyExtractor={item => item.id}
-            />
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Text style={styles.closeButtonText}>Close</Text>
-          </TouchableOpacity>
+            /> */}
+            <ScrollView>
+              {devices.map((item, index) => (
+                <View key={index} style={{ marginBottom: 20 }}>
+                  <Text style={{ fontWeight: 'bold' }}>Device {index + 1}:</Text>
+                  {renderKeys(item)}
+                </View>
+              ))}
+            </ScrollView>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity style={styles.modalButton} onPress={copyData}>
+                <Text style={styles.closeButtonText}>Copy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalButton} onPress={onClose}>
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+          </View>
         </View>
       </View>
     </Modal>
@@ -105,6 +154,14 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  modalButton: {
+    flex: 1,
+    padding: 15,
+    backgroundColor: '#2196F3',
+    borderRadius: 5,
+    marginHorizontal: 5,
+    alignItems: 'center',
   },
 });
 

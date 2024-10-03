@@ -58,15 +58,15 @@ const handleManufacturerData = (device, ourLockId) => {
           const lockNumber = BytesHelper.mergeLsb(lockNumberBytes);
           const lockId = BytesHelper.mergeLsb(lockIdBytes);
 
-          console.log({
-            id: device.id,
-            name: device.name,
-            manuCode: manuCode,
-            version: version,
-            deviceType,
-            lockNumber,
-            lockId
-          })
+          // console.log({
+          //   id: device.id,
+          //   name: device.name,
+          //   manuCode: manuCode,
+          //   version: version,
+          //   deviceType,
+          //   lockNumber,
+          //   lockId
+          // });
 
             return {
               id: device.id,
@@ -93,6 +93,7 @@ import {
   Characteristic,
   Device,
 } from "react-native-ble-plx";
+// import Clipboard from "@react-native-clipboard/clipboard";
 
 const bleManager = new BleManager();
 
@@ -230,10 +231,10 @@ function useBLE() {
       if (error) {
         console.log(error);
       }
-      console.log('device', device.manufacturerData)
+      // console.log('device', device.manufacturerData)
         if (device && device.manufacturerData !== null) {
             const manufacturerData = handleManufacturerData(device);
-            console.log('manufacturerData--', manufacturerData)
+            // console.log('manufacturerData--', manufacturerData)
             if(manufacturerData !== null) {
                 setAllDevices((prevState) => {
                   if (!isDuplicteDevice(prevState, manufacturerData)) {

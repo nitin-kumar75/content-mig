@@ -8,6 +8,9 @@ import useBLE from "../../useBLE";
 import * as Device from 'expo-device';
 import PinCodeModal from "../../PinCodeModal"
 import DebugModal from "../../DebugModal"
+import { FlatList, ScrollView } from 'react-native-gesture-handler';
+
+import Clipboard from "@react-native-clipboard/clipboard";
 
 
 
@@ -85,9 +88,50 @@ const Permission = ({ route })  => {
 
   }
 
+
+const copyData = async () => {
+  await Clipboard.setString(JSON.stringify({
+    api:data,
+    devices: allDevices
+    }))
+  console.log(JSON.stringify({
+    api:data,
+    devices: allDevices
+  }))
+}
+
   const debug = () => {
      setDebugModalVisible(true)
   }
+  
+  const renderKeys = (data) => {
+    return Object.keys(data).map((key) => {
+      const value = data[key];
+      if (Array.isArray(value)) {
+        return (
+          <View key={key} style={{ marginBottom: 10 }}>
+            <Text style={{ fontWeight: 'bold' }}>{key}:</Text>
+            {value.map((item, index) => (
+              <Text key={index}>- {JSON.stringify(item)}</Text>
+            ))}
+          </View>
+        );
+      }
+      if (typeof value === 'object' && value !== null) {
+        return (
+          <View key={key} style={{ marginBottom: 10 }}>
+            <Text style={{ fontWeight: 'bold' }}>{key}:</Text>
+            {renderKeys(value)}
+          </View>
+        );
+      }
+      return (
+        <Text key={key}>
+          {key}: {String(value)}
+        </Text>
+      );
+    });
+  };
 
   return (
         <View style={styles.modalContainer}>
@@ -109,7 +153,7 @@ const Permission = ({ route })  => {
                 <ActivityIndicator size="small" color="#000" />
                 }
             </Text>
-            <Text style={styles.status}>
+            {/* <Text style={styles.status}>
                Device Found 
                { allDevices.length > 0 ?
                <Text style={styles.tick}>✔</Text>
@@ -117,7 +161,7 @@ const Permission = ({ route })  => {
                  <ActivityIndicator size="small" color="#000" />
                 }
                
-            </Text>
+            </Text> */}
           </View>
 
           <View style={styles.buttonContainer}>
@@ -137,9 +181,16 @@ const Permission = ({ route })  => {
                 </TouchableOpacity>
             }
           </View>
+          <View style={styles.modalContainer2}>
+          <View style={styles.item}>
+            <View style={styles.item}>
+              <ScrollView>{renderKeys(data)}</ScrollView>
+            </View>
+          </View>
+          </View>
           <PinCodeModal code = { pinCode } visible={ isPinModalVisible } onClose={ () => { setPinModalVisible(false) } }></PinCodeModal>
           
-          <DebugModal devices = { allDevices } visible={ isDebugModalVisible } onClose={ () => { setDebugModalVisible(false) } }></DebugModal>
+          <DebugModal devices = { allDevices } visible={ isDebugModalVisible } copyData ={() => {copyData()}} onClose={ () => { setDebugModalVisible(false) } }></DebugModal>
           
           
          
@@ -202,6 +253,22 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  item: {
+    padding: 5,
+  },
+  modalContainer2: {
+    width: 400,
+    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    elevation: 5, // Adds a shadow effect on Android
+  },
+  title2: {
+    fontSize: 12,
+    marginBottom: 5,
+    textAlign: 'left',
+    color: '#000'
   },
 });
 
