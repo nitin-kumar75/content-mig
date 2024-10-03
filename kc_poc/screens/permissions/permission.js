@@ -35,8 +35,6 @@ const Permission = ({ route })  => {
 
   const { data } = route.params;
 
-  console.log(data)
-
   let pinCode = null;
 
   if(data?.PinCodes?.length > 0) {
@@ -65,21 +63,19 @@ const Permission = ({ route })  => {
   const scanForDevices = async () => {
     const isPermissionsEnabled = await requestPermissions();
     if (isPermissionsEnabled) {
-      scanForPeripherals();
+      scanForPeripherals(Device.isDevice && Device.osName === 'Android' ? 'Android' : 'Ios');
     }
   };
 
   const unlockDoor = () => {
     const token = data?.Tokens[0];
     const lockId = data?.LockId;
+    const deviceId = connectedDevice.id;
     if (Device.isDevice) {
       if (Device.osName === 'Android') {
-         //elements.unlockingToken.val() + "###" + elements.deviceAddress.val()
+        writeData(token, deviceId, 'Android')
       } else  {
-        const data = `${lockId}|${token}`
-        console.log(data)
-        console.log(allDevices)
-        //writeData()
+        writeData(token, lockId, 'Ios');
       }
     }
 

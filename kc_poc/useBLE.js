@@ -12,6 +12,81 @@ const sendCharacteristicID = "d3810003-96ad-447f-a62f-fd0e6460d4d6";
 
 const readCharacteristicID = "d3810002-96ad-447f-a62f-fd0e6460d4d6";
 
+const MANUCODE = 65534;
+
+
+const BytesHelper = {
+  mergeLsb: (bytes) => {
+      // Assuming this function merges the byte array into an integer
+      return bytes.reduce((acc, byte, index) => acc | (byte << (index * 8)), 0);
+  },
+};
+
+
+const base64ToByteArray = (base64) => {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+};
+
+
+const handleManufacturerData = (device, ourLockId) => {
+
+  const manufacturerData = device.manufacturerData;
+
+  const decodedData = base64ToByteArray(manufacturerData);
+
+
+  
+  // Parse the manufacturerData if it exists
+  if (decodedData) {
+      const manufacturerBytes = Array.from(decodedData);
+      const manuCode = manufacturerBytes[0]; // Assuming first byte is manuCode
+      const debugging = true; // Set your debugging logic
+
+
+      if (manuCode === MANUCODE || debugging) {
+
+          const version = manufacturerBytes[1];
+          const deviceType = manufacturerBytes[2];
+          const lockNumberBytes = manufacturerBytes.slice(3, 7);
+          const lockIdBytes = manufacturerBytes.slice(7, 11);
+          const lockNumber = BytesHelper.mergeLsb(lockNumberBytes);
+          const lockId = BytesHelper.mergeLsb(lockIdBytes);
+
+          console.log({
+            id: device.id,
+            name: device.name,
+            manuCode: manuCode,
+            version: version,
+            deviceType,
+            lockNumber,
+            lockId
+          })
+
+          if(ourLockId == lockId) {
+            return {
+              id: device.id,
+              name: device.name,
+              manuCode: manuCode,
+              version: version,
+              deviceType,
+              lockNumber,
+              lockId
+            }
+          } else {
+            return null
+          }
+      }
+  }
+
+  return null;
+};
+
 
 
 import {
@@ -118,26 +193,30 @@ function useBLE() {
     try {
       if(device.id) {
         const deviceConnection = await bleManager.connectToDevice(device.id);
-        setConnectedDevice(device);
-        // await deviceConnection.discoverAllServicesAndCharacteristics();
-        // bleManager.stopDeviceScan();
-        startStreamingData(deviceConnection);
+        if(!connectedDevice) {
+          console.log('Connect to', deviceConnection.name)
+          setConnectedDevice(device);
+        }
+        await deviceConnection.discoverAllServicesAndCharacteristics();
+        console.log('Service and characterstic discovered', deviceConnection)
       }
     } catch (e) {
       console.log("FAILED TO CONNECT", e);
     }
   }
 
-  const writeData = async (device, data) => {
+  const writeData = async (token, deviceId, deviceType) => {
     try {
-      alert(device.id)
-      const deviceConnection = await bleManager.writeCharacteristicWithResponseForDevice(
-        device.id,
-        serviceID,
-        sendCharacteristicID,
-        base64.encode(data)
-      );
-      alert('Unlocked Door')
+
+      if(deviceType === 'Android') {
+          const deviceConnection = await bleManager.writeCharacteristicWithResponseForDevice(
+            device.id,
+            serviceID,
+            sendCharacteristicID,
+            base64.encode(token)
+          );
+          alert('Unlocked Door')
+      }
     } catch (e) {
       alert('Failed to unlock door')
       alert(JSON.stringify(e));
@@ -148,23 +227,27 @@ function useBLE() {
   const isDuplicteDevice = (devices, nextDevice) =>
     devices.findIndex((device) => nextDevice.id === device.id) > -1;
 
-  const scanForPeripherals = () =>
-    bleManager.startDeviceScan(null, null, (error, device) => {
+  const scanForPeripherals = (deviceType) =>
+    bleManager.startDeviceScan(null, null, async(error, device) => {
       if (error) {
         console.log(error);
       }
-
-      if (
-        device &&
-        (device.localName === "AirPods Pro" || device.name === "AirPods Pro")
-      ) {
-        setAllDevices((prevState) => {
-          if (!isDuplicteDevice(prevState, device)) {
-            return [...prevState, device];
-          }
-          return prevState;
-        });
-      }
+      console.log('device', device.manufacturerData)
+        if (device && device.manufacturerData !== null) {
+            const manufacturerData = handleManufacturerData(device);
+            console.log('manufacturerData--', manufacturerData)
+            if(manufacturerData !== null) {
+                setAllDevices((prevState) => {
+                  if (!isDuplicteDevice(prevState, manufacturerData)) {
+                    return [...prevState, manufacturerData];
+                  }
+                  return prevState;
+                });
+                await connectToDevice(manufacturerData)
+            }
+        }
+     
+      
     });
 
   const onDataUpdate = (

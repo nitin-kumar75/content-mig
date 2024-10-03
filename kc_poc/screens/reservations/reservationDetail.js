@@ -37,9 +37,11 @@ const getCustomerBooking = (accommodationItem, parkId) => {
     c_status = 'BeforeDeparture';
   }
 
+  console.log(status)
+
   if (
     arrivalDate.isBefore(currentDate) &&
-    (departureDate.isSame(currentDate) || departureDate.isAfter(currentDate)) &&
+    (departureDate.isSame(currentDate) || departureDate.isAfter(currentDate))  &&
     status === 31
   ) {
     c_status = 'DuringStay';
@@ -130,7 +132,7 @@ const ReservationDetails = ({ route, parkId }) => {
                     {item.accommodationType === 0 ? 'Beach House' : 'Other'}
                   </Text>
 
-                  {getCustomerBooking(item, parkId)?.status === 'DuringStay' && (
+                  {/* {getCustomerBooking(item, parkId)?.status === 'DuringStay' && ( */}
 
                         <View style={styles.buttonContainer}>
                           <TouchableOpacity style={styles.button} onPress={() => getDigitalKey(item.reservationNumber)}>
@@ -139,7 +141,7 @@ const ReservationDetails = ({ route, parkId }) => {
                         </View>
 
                     
-                  )}
+                  {/* )} */}
               
                 </View>
               )}
