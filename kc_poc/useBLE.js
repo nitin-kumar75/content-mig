@@ -68,7 +68,6 @@ const handleManufacturerData = (device, ourLockId) => {
             lockId
           })
 
-          if(ourLockId == lockId) {
             return {
               id: device.id,
               name: device.name,
@@ -76,11 +75,10 @@ const handleManufacturerData = (device, ourLockId) => {
               version: version,
               deviceType,
               lockNumber,
-              lockId
-            }
-          } else {
-            return null
-          }
+              lockId,
+              manuData: manufacturerData
+            
+          } 
       }
   }
 
@@ -243,7 +241,7 @@ function useBLE() {
                   }
                   return prevState;
                 });
-                await connectToDevice(manufacturerData)
+                // await connectToDevice(manufacturerData)
             }
         }
      

@@ -7,6 +7,8 @@ import { useNavigation } from '@react-navigation/native';
 import useBLE from "../../useBLE";
 import * as Device from 'expo-device';
 import PinCodeModal from "../../PinCodeModal"
+import DebugModal from "../../DebugModal"
+
 
 
 const Permission = ({ route })  => {
@@ -47,6 +49,8 @@ const Permission = ({ route })  => {
 
   const [isPinModalVisible, setPinModalVisible] = useState(false)
 
+  const [isDebugModalVisible, setDebugModalVisible] = useState(false)
+
   const permission = async() => {
     const isPermissionsEnabled = await requestPermissions();
     setPemissionEnabled(isPermissionsEnabled)
@@ -81,6 +85,10 @@ const Permission = ({ route })  => {
 
   }
 
+  const debug = () => {
+     setDebugModalVisible(true)
+  }
+
   return (
         <View style={styles.modalContainer}>
           <Text style={styles.title}>Bluetooth Connection</Text>
@@ -113,11 +121,16 @@ const Permission = ({ route })  => {
           </View>
 
           <View style={styles.buttonContainer}>
-            { isPermissionsEnabled && bluetoothState === 'PoweredOn'  && allDevices.length > 0 &&
+          { isPermissionsEnabled && bluetoothState === 'PoweredOn'  &&
+              <TouchableOpacity style={styles.button} onPress={() => { debug()}}>
+                <Text style={styles.buttonText}>Debug</Text>
+              </TouchableOpacity>
+            }
+            {/* { isPermissionsEnabled && bluetoothState === 'PoweredOn'  && allDevices.length > 0 &&
               <TouchableOpacity style={styles.button} onPress={() => { unlockDoor()}}>
                 <Text style={styles.buttonText}>Unlock Door</Text>
               </TouchableOpacity>
-            }
+            } */}
             { pinCode !== null > 0 &&
                 <TouchableOpacity style={styles.button} onPress={() => { setPinModalVisible(true) }}>
                   <Text style={styles.buttonText}>Show Pin Code</Text>
@@ -125,7 +138,9 @@ const Permission = ({ route })  => {
             }
           </View>
           <PinCodeModal code = { pinCode } visible={ isPinModalVisible } onClose={ () => { setPinModalVisible(false) } }></PinCodeModal>
-
+          
+          <DebugModal devices = { allDevices } visible={ isDebugModalVisible } onClose={ () => { setDebugModalVisible(false) } }></DebugModal>
+          
           
          
         </View>
