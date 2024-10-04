@@ -33,10 +33,6 @@ const { error } = require('console');
 const APIURL = process.env.APIURL;
 
 
-const MAXXTON_API_URL = process.env.MAXXTON_API_URL;
-
-const KC_API_URL = process.env.KC_API_URL;
-
 const getPath = (lang) => {
 
   const obj = {
@@ -113,25 +109,43 @@ async function authenticate() {
   }
 }
 
-async function maxxtonAuthenticate() {
 
-  
-  const url = `${MAXXTON_API_URL}/authenticate?client_id=${process.env.MAX_CLIENT}&client_secret=${process.env.MAX_SEC}&grant_type=client_credentials&scope=rvp`;
-
-  try {
-    const response = await axios.post(url, {}, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      maxRedirects: 10,
-      timeout: 30000,
-    });
-
-    return response.data.access_token
-  } catch (error) {
-      handleError(error)
+const deleteFolderIfExists = async(folder) => {
+  if (fs.existsSync(folder)) {
+    await fs.promises.rm(folder, { recursive: true, force: true });
   }
-}
+};
+
+const createFolder = (folder) => {
+
+  if (!fs.existsSync(folder)) {
+      fs.mkdirSync(folder);
+      fs.mkdirSync(`${folder}/${PARK_PATH}`);
+      fs.mkdirSync(`${folder}/${ACC_PATH}`);
+  } else {
+      console.log(`Folder already exists: ${folder}`);
+  }
+};
+
+const createChildFolder = (folder) => {
+
+  if (!fs.existsSync(folder)) {
+      fs.mkdirSync(folder);
+  } else {
+      console.log(`Folder already exists: ${folder}`);
+  }
+};
+
+const fetchDataAndWriteFiles = async (items, folder) => {
+  try {
+    items.map((item, index) => {
+      const filePath = path.join(folder, item.file);
+      fs.writeFileSync(filePath, JSON.stringify(item.data, null, 2));
+    })
+  } catch (error) {
+      console.error(`Error fetching data: ${error.message}`);
+  }
+};
 
 
 const downloadZIP = async(parkId, files, outPutPath) => {
@@ -169,85 +183,6 @@ const downloadZIP = async(parkId, files, outPutPath) => {
   
 };
 
-async function getKCReservationDetail(token, reservationNumber) {
-
-  const url = `${KC_API_URL}/Reservation?filter=Number::${reservationNumber}&page=0&size=1`;
-
-  
-  try {
-    const response = await axios.get(url,  {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      maxRedirects: 10,
-      timeout: 30000,
-    });
-
-    return response.data
-  } catch (error) {
-    handleError(error)
-  }
-}
-
-async function getCustomerLogin(token, body) {
-
-  const url = `${MAXXTON_API_URL}/customers/login`;
- 
-  try {
-    const response = await axios.post(url, body, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      maxRedirects: 10,
-      timeout: 30000,
-    });
-    return response.data
-  } catch (error) {
-    handleError(error)
-  }
-}
-
-async function getReservationDetail(token, customerId) {
-
-  const url = `${MAXXTON_API_URL}/reservations/details?filter=customerId:${customerId}&departureDate>:${moment().format("YYYY-MM-DD")}&status>0&returnSections=RESERVEDRESOURCES&sort=departureDate,desc`;
- 
-  try {
-    const response = await axios.get(url,  {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      maxRedirects: 10,
-      timeout: 30000,
-    });
-
-    return response.data
-  } catch (error) {
-    handleError(error)
-  }
-}
-
-async function getReservationContent(token, reservationId) {
-
-  const url = `${MAXXTON_API_URL}/reservations/${reservationId}/content`;
- 
-  try {
-    const response = await axios.get(url,  {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      maxRedirects: 10,
-      timeout: 30000,
-    });
-
-    return response.data
-  } catch (error) {
-    handleError(error)
-  }
-}
 
 async function getAccommodationByResourceId(token, resourceId) {
 
@@ -326,7 +261,7 @@ async function getParks(lang, token, page) {
   }
 }
 
-async function getExtractContent(lang, token, objectId, path) {
+async function getExtractContent(lang, token, objectId, path, page = 1) {
 
   let url;
 
@@ -338,9 +273,9 @@ async function getExtractContent(lang, token, objectId, path) {
   }
 
   if(path === 'images') {
-    url = `${APIURL}/${path}?language=${lang}&auth_token=${token}&objectId=${objectId}`;
+    url = `${APIURL}/${path}?language=${lang}&auth_token=${token}&objectId=${objectId}&page=1`;
     if(lang === '') {
-      url = `${APIURL}/${path}?auth_token=${token}&objectId=${objectId}`;
+      url = `${APIURL}/${path}?auth_token=${token}&objectId=${objectId}&page=1`;
     }
   }
 
@@ -872,7 +807,7 @@ const filterMap = (str, data, lang) => {
    return content
 }
 
-const getMoreItems = async(lang, data, authToken, numpages, type, parkId) => {
+const getMoreItems = async(lang, data, authToken, numpages, type, objectId) => {
 
   let items = data;
 
@@ -881,11 +816,15 @@ const getMoreItems = async(lang, data, authToken, numpages, type, parkId) => {
   for(let i = 2; i <= numpages; i++) {
     
     if(type === 'getOpenTimes') {
-      promises.push(getOpeningTimes(lang, authToken, parkId, i))
+      promises.push(getOpeningTimes(lang, authToken, objectId, i))
     }
 
     if(type === 'getOpenTimes') {
-      promises.push(getActivities(authToken, parkId, false, 'en', i ))
+      promises.push(getActivities(authToken, objectId, false, 'en', i ))
+    }
+
+    if(type === 'images') {
+      promises.push(getExtractContent('', authToken, objectId, 'images' ))
     }
 
   }
@@ -1231,8 +1170,9 @@ const extractContent = async() => {
           individualAccomodation = accommodationObjectIds.map((acc, index) => {
             const ad = results[index]
             return {
-              file: `${ACC_PATH}/Accommodation-${acc}/Accommodation_${parkId}_${acc}.json`, 
-              data: ad && ad.items
+              file: `${ACC_PATH}/Accommodation-${acc}/Accommodation_P_${parkId}_A_${acc}.json`, 
+              data: ad && ad.items,
+              folder: `${ACC_PATH}/Accommodation-${acc}`
             }
           })
         }
@@ -1244,13 +1184,19 @@ const extractContent = async() => {
       if(accommodationObjectIds.length > 0) {
         const results = await Promise.all(accommodationObjectIds.map((u) => getExtractContent('', authToken, u, 'images' )));
         if(results.length > 0) {
-          allImagesAcc = accommodationObjectIds.map((acc, index) => {
+          allImagesAcc = await Promise.all(accommodationObjectIds.map(
+            async(acc, index) => {
             const ad = results[index]
-            return {
-              file: `${ACC_PATH}/Accommodation-${acc}/AccommodationImage_${parkId}_${acc}.json`, 
-              data: ad && ad.items
+            let items = []
+            if(ad) {
+               items =  await getMoreItems('', ad.items, authToken, ad?.page?.numpages , 'images', acc)
             }
-          })
+            return {
+              file: `${ACC_PATH}/Accommodation-${acc}/AccommodationImage_P_${parkId}_A_${acc}.json`, 
+              data: items,
+              folder: `${ACC_PATH}/Accommodation-${acc}`
+            }
+          }))
         }
       }
   
@@ -1283,7 +1229,31 @@ const extractContent = async() => {
       ...allImagesAcc
      ]
 
-      downloadZIP(parkId, files, outPutPath)
+      
+      const destinationFolder = path.join(outPutPath);
+
+      const folderName = `${destinationFolder}/Park_${parkId}`
+
+      await deleteFolderIfExists(folderName);
+
+      createFolder(folderName);
+
+      const childFolders = [...individualAccomodation, ...allImagesAcc]
+
+      const existAcc = [];
+
+      for(let acc = 0; acc < childFolders.length; acc++) {
+        const ad = childFolders[acc];
+        if(ad.folder && !existAcc.includes(ad.folder)) {
+          createChildFolder(`${folderName}/${ad.folder}`);
+          existAcc.push(ad.folder)
+        }
+      }
+
+      
+      await fetchDataAndWriteFiles(files, folderName);
+
+      console.log(`Folder created: ${folderName}`);
 
       clearInterval(loadingInterval); // Stop the loading indicator
 
