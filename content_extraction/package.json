@@ -1,0 +1,29 @@
+{
+  "name": "my-app",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./bin/www --env-file='.env'",
+    "dev": "nodemon ./bin/www --env-file='.env'"
+  },
+  "dependencies": {
+    "@episerver/content-delivery": "^1.1.0",
+    "archiver": "^7.0.1",
+    "axios": "^1.7.7",
+    "cookie-parser": "~1.4.4",
+    "cors": "^2.8.5",
+    "debug": "~2.6.9",
+    "dotenv": "^16.4.5",
+    "express": "~4.16.1",
+    "http-errors": "~1.6.3",
+    "jade": "~1.11.0",
+    "moment": "^2.30.1",
+    "morgan": "~1.9.1",
+    "node-libcurl": "^4.0.0",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@episerver/content-definitions": "^1.1.0",
+    "nodemon": "^3.1.7"
+  }
+}

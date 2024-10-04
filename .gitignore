@@ -5,10 +5,13 @@
 /client/node_modules
 /client_app/node_modules
 /server/node_modules
+/content_extraction/node_modules
+/.pnp
 /.pnp
 .pnp.js
 /server/.env
 /client_app/.env
+/content_extraction/.env
 # testing
 /coverage
 

@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const { Curl  } = require('node-libcurl');
 
 const axios = require('axios');
@@ -14,8 +16,19 @@ const archiver = require('archiver');
 
 const fs = require('fs');
 
+// app.js
+const yargs = require('yargs/yargs');
+
+const { hideBin } = require('yargs/helpers');
+
+const argv = yargs(hideBin(process.argv)).argv;
+
+const ACC_PATH = `Accomodation Details`;
+
+const PARK_PATH = `Park Details`;
 
 var _ = require('lodash');
+const { error } = require('console');
 
 const APIURL = process.env.APIURL;
 
@@ -28,7 +41,7 @@ const getPath = (lang) => {
 
   const obj = {
     en: {
-      DOMAIN: `https://demo-parksites.roompot.com`,
+      DOMAIN: `${process.env.CONTENT_EN_DOMAIN}`,
       TRAVEL_INFORMATION: `/travel-information`,
       IN_AND_AROUND: `/in-and-around-the-house`,
       SERVICE_CONTACT: `/service-contact`,
@@ -37,7 +50,7 @@ const getPath = (lang) => {
       FACILITIES: `/facilities`
     },
     nl: {
-      DOMAIN: `https://demo-parksites.roompot.nl`,
+      DOMAIN: `${process.env.CONTENT_NL_DOMAIN}`,
       TRAVEL_INFORMATION: `/reisinformatie`,
       IN_AND_AROUND: `/in-en-rondom-huis`,
       SERVICE_CONTACT: `/service-contact`,
@@ -46,7 +59,7 @@ const getPath = (lang) => {
       FACILITIES: `/faciliteiten`
     },
     de: {
-      DOMAIN: `https://demo-parksites.roompot.de`,
+      DOMAIN: `${process.env.CONTENT_DE_DOMAIN}`,
       TRAVEL_INFORMATION: `/reiseinformationen`,
       IN_AND_AROUND: `/im-und-um-das-haus-herum`,
       SERVICE_CONTACT: `/service-kontakt`,
@@ -54,8 +67,8 @@ const getPath = (lang) => {
       ORDER_INFO: `/einrichtungen/essen-trinken/brotchen-bestellen/`,
       FACILITIES: `/einrichtungen`
     },
-    fe: {
-      DOMAIN: `https://demo-parksites.roompot.fr`,
+    fr: {
+      DOMAIN: `${process.env.CONTENT_FR_DOMAIN}`,
       TRAVEL_INFORMATION: `/informations-de-voyage`,
       IN_AND_AROUND: `/dans-et-autour-de-la-maison`,
       SERVICE_CONTACT: `/service-contact`,
@@ -65,6 +78,12 @@ const getPath = (lang) => {
     }
   }
   return obj[lang];
+}
+
+const handleError = (error) => {
+  if(process.env.IS_DEBUG === "true") {
+    console.log(JSON.stringify(error))
+  }
 }
 
 async function authenticate() {
@@ -87,9 +106,9 @@ async function authenticate() {
     return response.data.access_token
   } catch (error) {
     if (error.response) {
-      console.error(`Error: ${error.response.status} - ${error.response.data}`);
+      handleError(error)
     } else {
-      console.error(`Error: ${error.message}`);
+      handleError(error)
     }
   }
 }
@@ -110,71 +129,44 @@ async function maxxtonAuthenticate() {
 
     return response.data.access_token
   } catch (error) {
-    if (error.response) {
-      console.error(`Error: ${error.response.status} - ${error.response.data}`);
-    } else {
-      console.error(`Error: ${error.message}`);
-    }
+      handleError(error)
   }
 }
 
-async function kcAuthenticate() {
 
- 
-  const url = `${KC_API_URL}/OAuth2/authenticate?client_id=${process.env.KC_CLIENT}&client_secret=${process.env.KC_SEC}&grant_type=client_credentials`;
+const downloadZIP = async(parkId, files, outPutPath) => {
 
-  try {
-    const response = await axios.post(url, {}, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      maxRedirects: 10,
-      timeout: 30000,
+    
+
+    const destinationFolder = path.join(outPutPath);
+  
+    const zipFilePath = path.join(destinationFolder, `Park_${parkId}.zip`);
+
+    if (!fs.existsSync(destinationFolder)){
+        fs.mkdirSync(destinationFolder);
+    }
+
+    const output = fs.createWriteStream(zipFilePath);
+
+    const archive = archiver('zip');
+
+    output.on('close', () => {
+      console.log(`ZIP file created: ${zipFilePath} (${archive.pointer()} total bytes)`);
     });
 
-    return response.data.access_token
-  } catch (error) {
-    if (error.response) {
-      console.error(`Error: ${error.response.status} - ${error.response.data}`);
-    } else {
-      console.error(`Error: ${error.message}`);
-    }
-  }
-}
+    archive.on('error', (err) => {
+      throw err;
+    });
 
+    archive.pipe(output);
 
+    files.forEach(item => {
+      archive.append(JSON.stringify(item.data, null, 2), { name: item.file });
+    });
 
-const downloadZIP = async(parkId, files) => {
+    archive.finalize();
 
-  const destinationFolder = path.join(__dirname, 'downloads');
- 
-  const zipFilePath = path.join(destinationFolder, `Park_${parkId}.zip`);
-
-  if (!fs.existsSync(destinationFolder)){
-      fs.mkdirSync(destinationFolder);
-  }
-
-  const output = fs.createWriteStream(zipFilePath);
-
-  const archive = archiver('zip');
-
-  output.on('close', () => {
-    console.log(`ZIP file created: ${zipFilePath} (${archive.pointer()} total bytes)`);
-  });
-
-  archive.on('error', (err) => {
-    throw err;
-  });
-
-  archive.pipe(output);
-
-  files.forEach(item => {
-    archive.append(JSON.stringify(item.data, null, 2), { name: item.file });
-  });
-
-  archive.finalize();
-
-
+  
 };
 
 async function getKCReservationDetail(token, reservationNumber) {
@@ -194,11 +186,7 @@ async function getKCReservationDetail(token, reservationNumber) {
 
     return response.data
   } catch (error) {
-    if (error.response) {
-      console.error(`Error: ${error.response.status} - ${error.response.data}`);
-    } else {
-      console.error(`Error: ${error.message}`);
-    }
+    handleError(error)
   }
 }
 
@@ -217,11 +205,7 @@ async function getCustomerLogin(token, body) {
     });
     return response.data
   } catch (error) {
-    if (error.response) {
-      console.error(`Error: ${error.response.status} - ${error.response.data}`);
-    } else {
-      console.error(`Error: ${error.message}`);
-    }
+    handleError(error)
   }
 }
 
@@ -241,11 +225,7 @@ async function getReservationDetail(token, customerId) {
 
     return response.data
   } catch (error) {
-    if (error.response) {
-      console.error(`Error: ${error.response.status} - ${error.response.data}`);
-    } else {
-      console.error(`Error: ${error.message}`);
-    }
+    handleError(error)
   }
 }
 
@@ -265,11 +245,7 @@ async function getReservationContent(token, reservationId) {
 
     return response.data
   } catch (error) {
-    if (error.response) {
-      console.error(`Error: ${error.response.status} - ${error.response.data}`);
-    } else {
-      console.error(`Error: ${error.message}`);
-    }
+    handleError(error)
   }
 }
 
@@ -288,11 +264,7 @@ async function getAccommodationByResourceId(token, resourceId) {
 
     return response.data
   } catch (error) {
-    if (error.response) {
-      console.error(`Error: ${error.response.status} - ${error.response.data}`);
-    } else {
-      console.error(`Error: ${error.message}`);
-    }
+    handleError(error)
   }
 }
 
@@ -312,11 +284,7 @@ async function getOpeningTimes(lang, token, parkId, page = 1) {
     });
     return response.data;
   } catch (error) {
-    if (error.response) {
-      console.error(`Error: ${error.response.status} - ${error.response.data}`);
-    } else {
-      console.error(`Error: ${error.message}`);
-    }
+    handleError(error)
   }
 }
 
@@ -335,11 +303,7 @@ async function getParkDetails(lang, token, parkId) {
     });
     return response.data;
   } catch (error) {
-    if (error.response) {
-      console.error(`Error: ${error.response.status} - ${error.response.data}`);
-    } else {
-      console.error(`Error: ${error.message}`);
-    }
+    handleError(error)
   }
 }
 
@@ -358,11 +322,7 @@ async function getParks(lang, token, page) {
     });
     return response.data;
   } catch (error) {
-    if (error.response) {
-      console.error(`Error: ${error.response.status} - ${error.response.data}`);
-    } else {
-      console.error(`Error: ${error.message}`);
-    }
+    handleError(error)
   }
 }
 
@@ -407,11 +367,7 @@ async function getExtractContent(lang, token, objectId, path) {
     });
     return response.data;
   } catch (error) {
-    if (error.response) {
-      console.error(`Error: ${error.response.status} - ${error.response.data}`);
-    } else {
-      console.error(`Error: ${error.message}`);
-    }
+    handleError(error)
   }
 }
 
@@ -429,11 +385,7 @@ async function getParkMapImage(lang, token, parkId) {
     });
     return response.data;
   } catch (error) {
-    if (error.response) {
-      console.error(`Error: ${error.response.status} - ${error.response.data}`);
-    } else {
-      console.error(`Error: ${error.message}`);
-    }
+    handleError(error)
   }
 }
 
@@ -448,11 +400,7 @@ async function getImages(lang, token, objectId) {
     });
     return response.data;
   } catch (error) {
-    if (error.response) {
-      console.error(`Error: ${error.response.status} - ${error.response.data}`);
-    } else {
-      console.error(`Error: ${error.message}`);
-    }
+     handleError(error)
   }
 }
 
@@ -474,11 +422,7 @@ async function getActivities(token, parkId, isBookerPageId, lang, page=1) {
     return data;
 
   } catch (error) {
-    if (error.response) {
-      console.error(`Error: ${error.response.status} - ${error.response.data}`);
-    } else {
-      console.error(`Error: ${error.message}`);
-    }
+     handleError(error)
   }
 }
 
@@ -496,11 +440,7 @@ async function getVicinities(token, parkId, lang, page=1) {
 
     return data;
   } catch (error) {
-    if (error.response) {
-      console.error(`Error: ${error.response.status} - ${error.response.data}`);
-    } else {
-      console.error(`Error: ${error.message}`);
-    }
+     handleError(error)
   }
 }
 
@@ -932,403 +872,6 @@ const filterMap = (str, data, lang) => {
    return content
 }
 
-
-router.get('/', async function(req, res, next) {
-
-  try {
-
-    const authToken = await authenticate();
-
-    const { query } = req;
-
-    const lang = query.lang ? query.lang : `en`;
-
-    const parkName = query.parkName ? query.parkName : `weerterbergen`;
-
-    const config = getPath(lang);
-
-    const domain = config.DOMAIN;
-
-    const response = await fetchEpiServerContent(`${domain}/${parkName}/`, lang);
-
-    const data = response.data;
-
-    const obj = {};
-
-    if(data.length > 0) {
-
-       const { contentLink, name, routeSegment, foodAndDrinksBlock, id, isLoggedInCheckoutEnabled, isQRCheckoutEnabled, isDigitalKeyEnabled } = data[0];
-      
-       obj.name = name;
-
-       obj.parkId = id?.value;
-
-
-       obj.isLoggedInCheckoutEnabled = isLoggedInCheckoutEnabled?.value
-       
-       obj.isQRCheckoutEnabled = isQRCheckoutEnabled?.value
-
-       obj.isDigitalKeyEnabled = isDigitalKeyEnabled?.value
-
-       
-       const openingTimes = await getOpeningTimes(lang, authToken, obj.parkId )
-
-       const parkDetails = await getParkDetails(lang, authToken, obj.parkId )
-
-      
-       const parkMapImage = await getParkMapImage(lang, authToken, obj.parkId);
-
-       // const vicinities = await getVicinities(authToken, obj.parkId, lang)
-
-       // const openingTimesItems = openingTimes?.items;
-       
-       const foodBlocksUrl = [];
-
-       const foodAndDrinks = [];
-
-       if(foodAndDrinksBlock) {
-
-           const infoPages = foodAndDrinksBlock.infoPages
-        
-           const infoPagesValues = infoPages?.value
-
-           if(infoPagesValues !== null) {
-            for(let i = 0; i < infoPagesValues.length; i++) {
-            
-              const infoPageValue = infoPagesValues[i];
-            
-              foodBlocksUrl.push(infoPageValue.url)
-            
-            }
-           }
-       }
-
-       if(foodBlocksUrl.length > 0) {
-          
-          obj.foodAndDrinks = await getFoodDrinks(foodBlocksUrl, lang, []);
-
-          obj.orderFormInformation = await getOrderForms(`${domain}/${parkName}${config.ORDER_INFO}&expand=*`, lang)
-       }
-       
-       obj.facility = {
-        ...await getFacilities(domain, parkName, [], lang)
-       }
-
-
-      
-       // obj.vicinities = vicinities;
-
-       obj.travelInfromation = {
-        ...await getMoreInformation(domain, parkName, lang, config.TRAVEL_INFORMATION)
-       }
-
-       obj.inAndRoundInformation = {
-        ...await getMoreInformation(domain, parkName, lang, config.IN_AND_AROUND)
-       }
-
-       obj.parkRulesInformation = {
-        ...await getMoreInformation(domain, parkName, lang, config.PARK_RULES)
-       }
-
-       obj.serviceContactInformation = {
-        ...await getMoreInformation(domain, parkName, lang, config.SERVICE_CONTACT)
-       }
-
-       const park = {};
-
-       let hasLeisurehubActivities = false
-               
-       let isBookerPageId = false
-               
-
-       if(parkDetails) {
-
-          const { items } = parkDetails
-          if(items.length > 0) {
-
-             const item = items[0];
-             park.lat = item.latitude;
-             park.lng = item.longitude;
-             
-             park.city = item.city;
-
-             const langs = item.lang
-             
-             const langFilter = langs && langs.filter((d) => d.language === lang);
-
-             if(langFilter && langFilter.length > 0) {
-
-              const l = langFilter[0]
-              park.parkName = l.name;
-              park.country = l.country.name;
-              park.region = l.region.name;
-
-             }
-
-
-
-             const { properties} = item;
-             if(properties.length > 0) {
-
-                park.videos = filterProperty('park_video', properties, lang)
-
-                park.jimani_key = filterProperty('park_jimanikey', properties, lang)
-
-                const streetProperty = filterProperty('park_streetname', properties, lang)
-
-                const houseNrProperty = filterProperty('park_housenr', properties, lang)
-
-                const filterLeisurehubActivities = filterProperty('park_leisurehub_token', properties, lang)
-
-                if(filterLeisurehubActivities !== null && filterLeisurehubActivities !== '') {
-                  hasLeisurehubActivities = true;
-                }
-
-                const filterBooker25PageId = filterProperty('park_booker25_page_id', properties, lang)
-
-                if(filterBooker25PageId !== null && filterBooker25PageId !== '') {
-                  isBookerPageId = true;
-                }
-
-              
-                const address = [];
-                if(streetProperty) {
-                  address.push(streetProperty)
-                }
-                if(houseNrProperty) {
-                  address.push(houseNrProperty)
-                }
-                if(address.length > 0) {
-                  park.address = address.join(" ")
-                }
-
-                const postalCodeProperty = filterProperty('park_postalcode', properties, lang)
-
-                if(postalCodeProperty) {
-                  park.postalCode = postalCodeProperty
-                }
-
-                const phoneNrProperty = filterProperty('park_phonenr', properties, lang)
-
-                if(phoneNrProperty) {
-                  park.phoneNr = phoneNrProperty
-                }
-  
-             } 
-          }
-       }
-
-       if(parkMapImage) {
-        const { items } = parkMapImage
-        if(items.length > 0) {
-           const item = items[0];
-           const { pristine} = item;
-           if(pristine.length > 0) {
-              park.map = filterMap('park-map-parkmap-fixed-width', pristine, lang)
-           } 
-        }
-       }
-
-       obj.parkDetails = {
-        ...park,
-       }
-
-      // const activities = await getActivities(authToken, obj.parkId, isBookerPageId, lang);
-
-      // obj.activities = activities;
-
-       
-    }
-
-    res.json(obj)
- 
-  } catch (error) {
-    console.error('Error:', error);
-  }
-
-
-
-});
-
-router.post('/login', async function(req, res, next) {
-
-  try {
-
-    const authToken = await maxxtonAuthenticate();
-
-    const apiToken = await authenticate();
-
-    const { username, password, lang } = req.body;
-
-    const loginRes = await getCustomerLogin(authToken, {
-      login:username,
-      password
-    })
-
-   
-    let result= {};
-
-    const accommodationDetails = [];
-
-    if(loginRes) {
-      
-      const { customerId } = loginRes;
-
-      const reservationDetailResponse = await getReservationDetail(authToken, customerId);
-
-      if(reservationDetailResponse) {
-         
-        const { content } =  reservationDetailResponse;
-
-       
-
-         const bookings= _.groupBy(content, 'resortId');
-         
-         for(const booking in bookings) {
-
-          const obj = bookings[booking];
-
-        
-
-         
-          if(obj.length > 0) {
-          
-            const book = obj[0];
-
-            const reservationId  = book?.reservationId;
-
-            if(reservationId) {
-              const reservationContentResponse = await getReservationContent(authToken, reservationId);
-              if(reservationContentResponse && reservationContentResponse?.content?.length > 0) {
-                 const findResContent = reservationContentResponse?.content.find((r) => r.type === 'ACCOMMODATIONTYPE');
-                 if(findResContent) {
-
-                   const { resourceId } = findResContent;
-                 
-                   const accommodationResourceResponse = await getAccommodationByResourceId(apiToken, resourceId);
-
-                   if(accommodationResourceResponse && accommodationResourceResponse?.items?.length > 0) {
-
-                     const accommodationItem = accommodationResourceResponse?.items[0];
-
-
-                     const a = {}
-
-                     if(accommodationItem?.parkId) {
-
-                          const images = await getImages(lang, apiToken, accommodationItem?.objectId);
-                           
-                          if(images) {
-                            const { items } = images
-                            if(items.length > 0) {
-                              let data = items.map((x) => {
-                                if(x.typeId == 10007){
-                                  var d = x.pristine.filter((p) => {
-                                     if(p.size.sizeId == 10057) {
-                                       return p.lang;
-                                     }
-                                   })[0]?.lang[0]?.uri;
-                                 }
-                                 return d;
-                              })
-                              a.image = data.find(x=>{
-                                if(!_.isNil(x))
-                                return x;
-                              });
-                            }
-                          }
-                      }
-
-                      const langFind =  accommodationItem?.lang?.find((a) => a.language === lang);
-
-
-                     accommodationDetails.push({
-                      ...a,
-                      arrival: book.expectedArrivalDateTime,
-                      departure: book.expectedDepartureDateTime,
-                      status: book.status,
-                      accommodationType : accommodationItem.isCampingSite ? 1 : 0,
-                      parkName: langFind?.parkName,
-                      name: langFind?.name,
-                      reservationNumber: book.reservationNumber,
-                      parkId: accommodationItem?.parkId,
-                     })
-
-                   }
-                 }
-
-              }
-            }
-          }
-         }
-      }
-
-    } else {
-      res.status(404).send("Username or Password is incorrect");
-    }
-
-  
-    res.json({
-      accommodationDetails,
-      profile:loginRes,
-    })
- 
-  } catch (error) {
-    console.error('Error:', error);
-  }
-
-
-
-});
-
-
-router.get('/parks', async function(req, res, next) {
-
-  try {
-
-    const authToken = await authenticate();
-
-    const parkDetails = await getParks('', authToken, 1)    
-
-    const numpages = parkDetails?.page?.numpages 
-
-    let parks = []
-
-    let items = parkDetails.items;
-
-    let promises = []
-   
-    for(let i = 2; i <= numpages; i++) {
-      promises.push(getParks('', authToken, i))
-    }
-
-    const results = await Promise.all(promises);
-    
-    if(results.length > 0) {
-      for(let i = 0; i < results.length; i++) {
-          const item = results[i].items;
-          items.push(
-            ...item
-          )
-      }
-    }
-     
-    parks = items.map((a) => {
-      const langF = a.lang.find((l) => l.language === 'en')
-      return {
-        objectId: a.objectId,
-        name: langF && langF.name      
-      }
-    });
-
-    res.json(items)
- 
-  } catch (error) {
-    console.error('Error:', error);
-  }
-
-})
-
 const getMoreItems = async(lang, data, authToken, numpages, type, parkId) => {
 
   let items = data;
@@ -1563,7 +1106,7 @@ const getMigrationContent = async(lang, parkId, authToken, slug) => {
 
 const getParkDetailsPages = async(lang) => {
 
-  const url = `https://demo.roompot.nl/parkdetailpage/getallparkpages/?locale=${lang}`;
+  const url = `${process.env.MAIN_SITE_URL}/parkdetailpage/getallparkpages/?locale=${lang}`;
   
   try {
     const response = await axios.get(url,  {
@@ -1576,210 +1119,180 @@ const getParkDetailsPages = async(lang) => {
 
     return response.data
   } catch (error) {
-    if (error.response) {
-      console.error(`Error: ${error.response.status} - ${error.response.data}`);
-    } else {
-      console.error(`Error: ${error.message}`);
-    }
+     handleError(error)
   }
 }
 
-router.get('/extract-cotnent', async function(req, res, next) {
 
+const extractContent = async() => {
+
+  let loadingMessage = 'Downloading';
+    
+  let loadingInterval;
+
+  // Start the loading indicator
+  loadingInterval = setInterval(() => {
+      process.stdout.write(`\r${loadingMessage}...`);
+      loadingMessage += '.';
+  }, 500); //
+
+  
   try {
 
     const authToken = await authenticate();
 
-    const { parkId } = req.query;
+    const parkId = argv.parkId; 
 
-    const parkDetails = await getExtractContent('', authToken, parkId, 'parks' )
+    const outPutPath = argv.outPutPath;
 
-    const parkDetailsPages = await getParkDetailsPages('en')
-
-    let contentMigration = [];
-
-    if(parkDetailsPages) {
-      const findPark = parkDetailsPages.find((p) => p.Id == parkId);
-      if(findPark) {
-        const url =   new URL(findPark.Url);
-        const pathSegments = url.pathname.split('/').filter(segment => segment !== ''); // Split and filter out empty segments
-        const slug = pathSegments.pop(); //
-        if(slug) {
-          const enContent = await getMigrationContent('en', parkId, authToken, slug);
-          const nlContent = await getMigrationContent('nl', parkId, authToken, slug);
-          const deContent = await getMigrationContent('de', parkId, authToken, slug);
-          const frContent = await getMigrationContent('de', parkId, authToken, slug);
-          contentMigration = [
-            {
-              file: `Park Detail/Park_${parkId}_ContentMigration.json`, 
-              data: {
-                en: enContent,
-                nl: nlContent,
-                de: deContent,
-                fr: frContent
-              }
-            }
-          ]
-
-        }
-      }
+    if(!parkId) {
+      console.log('ParkId is not specified');
+      clearInterval(loadingInterval);
+      return;
     }
 
-    
-  
-    const allAcommodationDetails = await getExtractContent('', authToken, parkId, 'accommodations' ) 
-    
-    const allImagesDetails = await getExtractContent('', authToken, parkId, 'images' ) 
-
-    const openingTimes = await getOpeningTimes('', authToken, parkId )
-
-    const openingTimesItems = await getMoreItems('', openingTimes.items, authToken, openingTimes?.page?.numpages , 'getOpenTimes')
-
-    const vicinities = await getVicinities(authToken, parkId, 'en')
-
-    const activities = await getActivities(authToken, parkId, false, 'en', 1 )
-
-    const activitiesItems = await getMoreItems('', activities.items, authToken, activities?.page?.numpages , 'getActivities')
-    
-
-
-    let accommodationObjectIds = []
-
-    const ACC_PATH = `Accomodation Details`;
-
-    if(allAcommodationDetails && allAcommodationDetails.items?.length > 0) {
-        accommodationObjectIds = allAcommodationDetails.items.map((a) => {
-          return a.objectId;
-        });
+    if(!outPutPath) {
+      console.log('OutPut Path is not specified');
+      clearInterval(loadingInterval);
+      return;
     }
 
-    let individualAccomodation = [];
-
-    if(accommodationObjectIds.length > 0) {
-
-      const results = await Promise.all(accommodationObjectIds.map((u) => getExtractContent('', authToken, u, 'accommodation' )));
-      
-      if(results.length > 0) {
-        individualAccomodation = accommodationObjectIds.map((acc, index) => {
-          const ad = results[index]
-          return {
-            file: `${ACC_PATH}/Accommodation-${acc}/Accommodation_${parkId}_${acc}.json`, 
-            data: ad && ad.items
-          }
-        })
-      }
-    }
-
-
-    let allImagesAcc = [];
-
-    if(accommodationObjectIds.length > 0) {
-      const results = await Promise.all(accommodationObjectIds.map((u) => getExtractContent('', authToken, u, 'images' )));
-      if(results.length > 0) {
-        allImagesAcc = accommodationObjectIds.map((acc, index) => {
-          const ad = results[index]
-          return {
-            file: `${ACC_PATH}/Accommodation-${acc}/AccommodationImage_${parkId}_${acc}.json`, 
-            data: ad && ad.items
-          }
-        })
-      }
-    }
-
-    const files = [{
-      file: `Park Detail/Park_${parkId}.json`, 
-      data: parkDetails && parkDetails.items,
-    }, 
-    {
-      file: `Park Detail/Park_${parkId}_Images.json`, 
-      data: allImagesDetails && allImagesDetails.items,
-    },
-    {
-      file: `Park Detail/Park_${parkId}_OpeningTimes.json`,
-      data: openingTimesItems
-    },
-    {
-      file: `Park Detail/Park_${parkId}_Tips&Trips.json`,
-      data: vicinities && vicinities.items
-    },
-    {
-      file: `Park Detail/Park_${parkId}_Activities.json`,
-      data: activitiesItems
-    },
-    ...contentMigration,
-    // {
-    //   file: `Acc_${parkId}.json`, 
-    //   data: allAcommodationDetails && allAcommodationDetails.items,
-    // },
-    ...individualAccomodation,
-    ...allImagesAcc
-   ]
-
-    downloadZIP(parkId, files)
-
-    res.json({
-      msg: 'Done'  
-    })
- 
-  } catch (error) {
-    console.error('Error:', error);
-  }
-
-})
-
-
-router.get('/digital-key', async function(req, res, next) {
-
-  try {
-
-    const authToken = await kcAuthenticate();
-
-    const { reservationNumber } =  req.query;
-
-    const KcReservationDetail = await getKCReservationDetail(authToken, reservationNumber)
-    
-    let isBluetoothLock = false;
-
-    let findLocks = {};
-
-    if(KcReservationDetail?.Data?.length > 0) {
-      const  ReservationItems= KcReservationDetail.Data[0]?.ReservationItems;
-      if(ReservationItems.length > 0) {
-        const resItem = ReservationItems[0];
-        const Locks = resItem.Object?.Locks;
-        if(Locks.length) {
-          const findD = Locks.find((l) => l.Ble.UseBle)
-          if(findD) {
-            findLocks = findD;
-            isBluetoothLock = true;
-          }
-        }
      
+      const parkDetails = await getExtractContent('', authToken, parkId, 'parks' )
+
+    
+      if(!parkDetails) {
+        console.log('Not able to find parkdetails. Please pass correct park id');
+        clearInterval(loadingInterval);
+        return;
       }
-    }
 
-    if(!isBluetoothLock) {
-      res.status(404).send("Not able to found bluetooth lock");
-    }
+      const parkDetailsPages = await getParkDetailsPages('en')
+  
+      let contentMigration = [];
+  
+      if(parkDetailsPages) {
+        const findPark = parkDetailsPages.find((p) => p.Id == parkId);
+        if(findPark) {
+          const url =   new URL(findPark.Url);
+          const pathSegments = url.pathname.split('/').filter(segment => segment !== ''); // Split and filter out empty segments
+          const slug = pathSegments.pop(); //
+          if(slug) {
+            const enContent = await getMigrationContent('en', parkId, authToken, slug);
+            const nlContent = await getMigrationContent('nl', parkId, authToken, slug);
+            const deContent = await getMigrationContent('de', parkId, authToken, slug);
+            const frContent = await getMigrationContent('fr', parkId, authToken, slug);
+            contentMigration = [
+              {
+                file: `${PARK_PATH}/Park_${parkId}_ContentMigration.json`, 
+                data: {
+                  en: enContent,
+                  nl: nlContent,
+                  de: deContent,
+                  fr: frContent
+                }
+              }
+            ]
+  
+          }
+        }
+      }
+    
+      const allAcommodationDetails = await getExtractContent('', authToken, parkId, 'accommodations' ) 
+      
+      const allImagesDetails = await getExtractContent('', authToken, parkId, 'images' ) 
+  
+      const openingTimes = await getOpeningTimes('', authToken, parkId )
+  
+      const openingTimesItems = await getMoreItems('', openingTimes.items, authToken, openingTimes?.page?.numpages , 'getOpenTimes')
+  
+      const vicinities = await getVicinities(authToken, parkId, 'en')
+  
+      const activities = await getActivities(authToken, parkId, false, 'en', 1 )
+  
+      const activitiesItems = await getMoreItems('', activities.items, authToken, activities?.page?.numpages , 'getActivities')
+      
+  
+      let accommodationObjectIds = []
+  
+      if(allAcommodationDetails && allAcommodationDetails.items?.length > 0) {
+          accommodationObjectIds = allAcommodationDetails.items.map((a) => {
+            return a.objectId;
+          });
+      }
+  
+      let individualAccomodation = [];
+  
+      if(accommodationObjectIds.length > 0) {
+  
+        const results = await Promise.all(accommodationObjectIds.map((u) => getExtractContent('', authToken, u, 'accommodation' )));
+        
+        if(results.length > 0) {
+          individualAccomodation = accommodationObjectIds.map((acc, index) => {
+            const ad = results[index]
+            return {
+              file: `${ACC_PATH}/Accommodation-${acc}/Accommodation_${parkId}_${acc}.json`, 
+              data: ad && ad.items
+            }
+          })
+        }
+      }
+  
+  
+      let allImagesAcc = [];
+  
+      if(accommodationObjectIds.length > 0) {
+        const results = await Promise.all(accommodationObjectIds.map((u) => getExtractContent('', authToken, u, 'images' )));
+        if(results.length > 0) {
+          allImagesAcc = accommodationObjectIds.map((acc, index) => {
+            const ad = results[index]
+            return {
+              file: `${ACC_PATH}/Accommodation-${acc}/AccommodationImage_${parkId}_${acc}.json`, 
+              data: ad && ad.items
+            }
+          })
+        }
+      }
+  
+      const files = [{
+        file: `${PARK_PATH}/Park_${parkId}.json`, 
+        data: parkDetails && parkDetails.items,
+      }, 
+      {
+        file: `${PARK_PATH}/Park_${parkId}_Images.json`, 
+        data: allImagesDetails && allImagesDetails.items,
+      },
+      {
+        file: `${PARK_PATH}/Park_${parkId}_OpeningTimes.json`,
+        data: openingTimesItems
+      },
+      {
+        file: `${PARK_PATH}/Park_${parkId}_Tips&Trips.json`,
+        data: vicinities && vicinities.items
+      },
+      {
+        file: `${PARK_PATH}/Park_${parkId}_Activities.json`,
+        data: activitiesItems
+      },
+      ...contentMigration,
+      // {
+      //   file: `Acc_${parkId}.json`, 
+      //   data: allAcommodationDetails && allAcommodationDetails.items,
+      // },
+      ...individualAccomodation,
+      ...allImagesAcc
+     ]
 
+      downloadZIP(parkId, files, outPutPath)
 
-   
-    res.json({
-      ...findLocks
-    })
- 
+      clearInterval(loadingInterval); // Stop the loading indicator
+
   } catch (error) {
+
+    clearInterval(loadingInterval);
+
     console.error('Error:', error);
   }
+}
 
-
-
-});
-
-
-
-
-
-
-
-module.exports = router;
+extractContent();
