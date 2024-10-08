@@ -30,14 +30,14 @@ const PARK_PATH = `Park Details`;
 var _ = require('lodash');
 const { error } = require('console');
 
-const APIURL = process.env.APIURL;
+const APIURL = process.env.MOBILE_APIURL;
 
 
 const getPath = (lang) => {
 
   const obj = {
     en: {
-      DOMAIN: `${process.env.CONTENT_EN_DOMAIN}`,
+      DOMAIN: `${process.env.MOBILE_CONTENT_EN_DOMAIN}`,
       TRAVEL_INFORMATION: `/travel-information`,
       IN_AND_AROUND: `/in-and-around-the-house`,
       SERVICE_CONTACT: `/service-contact`,
@@ -46,7 +46,7 @@ const getPath = (lang) => {
       FACILITIES: `/facilities`
     },
     nl: {
-      DOMAIN: `${process.env.CONTENT_NL_DOMAIN}`,
+      DOMAIN: `${process.env.MOBILE_CONTENT_NL_DOMAIN}`,
       TRAVEL_INFORMATION: `/reisinformatie`,
       IN_AND_AROUND: `/in-en-rondom-huis`,
       SERVICE_CONTACT: `/service-contact`,
@@ -55,7 +55,7 @@ const getPath = (lang) => {
       FACILITIES: `/faciliteiten`
     },
     de: {
-      DOMAIN: `${process.env.CONTENT_DE_DOMAIN}`,
+      DOMAIN: `${process.env.MOBILE_CONTENT_DE_DOMAIN}`,
       TRAVEL_INFORMATION: `/reiseinformationen`,
       IN_AND_AROUND: `/im-und-um-das-haus-herum`,
       SERVICE_CONTACT: `/service-kontakt`,
@@ -64,7 +64,7 @@ const getPath = (lang) => {
       FACILITIES: `/einrichtungen`
     },
     fr: {
-      DOMAIN: `${process.env.CONTENT_FR_DOMAIN}`,
+      DOMAIN: `${process.env.MOBILE_CONTENT_FR_DOMAIN}`,
       TRAVEL_INFORMATION: `/informations-de-voyage`,
       IN_AND_AROUND: `/dans-et-autour-de-la-maison`,
       SERVICE_CONTACT: `/service-contact`,
@@ -87,8 +87,8 @@ async function authenticate() {
   const url = `${APIURL}/auth`;
 
   const data = new URLSearchParams({
-    username: process.env.API_USERNAME,
-    password: process.env.API_PASSWORD,
+    username: process.env.MOBILE_API_USERNAME,
+    password: process.env.MOBILE_API_PASSWORD,
   });
 
   try {
@@ -381,7 +381,9 @@ async function getVicinities(token, parkId, lang, page=1) {
 
 const fetchEpiServerContent = async (contentUrl, lang) => {
 
-  const url = `https://demo-parksites.roompot.nl/api/episerver/v3.0/content/?ContentUrl=${contentUrl}`;
+  const config = getPath(lang);
+
+  const url = `${config.domain}${process.env.SITECORE_EPISERVERURL}?ContentUrl=${contentUrl}`;
 
   let updateLang = ''
   if(lang === 'en') {
@@ -1038,14 +1040,12 @@ const getMigrationContent = async(lang, parkId, authToken, slug) => {
        
     }
 
-    return {
-      en: obj
-    }
+    return obj
 } 
 
 const getParkDetailsPages = async(lang) => {
 
-  const url = `${process.env.MAIN_SITE_URL}/parkdetailpage/getallparkpages/?locale=${lang}`;
+  const url = `${process.env.MOBILE_MAIN_SITE_URL}/parkdetailpage/getallparkpages/?locale=${lang}`;
   
   try {
     const response = await axios.get(url,  {
