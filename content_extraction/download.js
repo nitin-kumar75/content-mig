@@ -383,7 +383,7 @@ const fetchEpiServerContent = async (contentUrl, lang) => {
 
   const config = getPath(lang);
 
-  const url = `${config.domain}${process.env.SITECORE_EPISERVERURL}?ContentUrl=${contentUrl}`;
+  const url = `${config.DOMAIN}${process.env.MOBILE_EPISERVERURL}?ContentUrl=${contentUrl}`;
 
   let updateLang = ''
   if(lang === 'en') {

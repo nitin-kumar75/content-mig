@@ -396,7 +396,7 @@ function createNestedJsonObject(keys, values) {
                           currentLevel[part] = [];
                       }
                       if(value.length > 0) {
-                        currentLevel[part].push(value); // Add the value to the array
+                        currentLevel[part] = value; // Add the value to the array
                       }
                   } else if (expectedType === 'string') {
                       currentLevel[part] = value; // Assign the string value
@@ -503,7 +503,7 @@ const mappedValues = (epiContent, mapped, columnBData, columnCData, source ) => 
   return value;
 }
 
-const extractContent = async() => {
+const mergeContent = async() => {
 
   let loadingMessage = 'Downloading';
     
@@ -708,4 +708,4 @@ const extractContent = async() => {
   }
 }
 
-extractContent();
+mergeContent();
