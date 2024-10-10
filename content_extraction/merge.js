@@ -493,10 +493,25 @@ const mappedValues = (epiContent, mapped, columnBData, columnCData, source ) => 
     value = getValueByKeyPath(epiContent, mapped)
   }
   if(source === 'Excel') {
-    const findIndex = columnBData.findIndex((c) => c === mapped);
-    if(findIndex >= 0) {
-      if(columnCData && columnCData[findIndex]) {
-        value = columnCData[findIndex]
+    if(mapped.includes('array')) {
+      const updatedMapped = mapped.replace('_array');
+      const filterBColumns = columnBData.filter((cb) => cb.startsWith(updatedMapped) && cb.includes('_array'));
+      if(filterBColumns.length > 0) {
+          const obj = {}
+          filterBColumns.forEach((element, index) => {
+              const findIndex = columnBData.findIndex((ele) => ele === element);
+              const valueData = columnCData[findIndex]
+              const spE = element.replace(`${updatedMapped}_`)
+              obj[element] = valueData;    
+          });
+          return obj;
+      }
+    } else {
+      const findIndex = columnBData.findIndex((c) => c === mapped);
+      if(findIndex >= 0) {
+        if(columnCData && columnCData[findIndex]) {
+          value = columnCData[findIndex]
+        }
       }
     }
   }
@@ -680,8 +695,9 @@ const mergeContent = async() => {
               });
               return obj
             }).filter((a) => Object.keys(a).length > 0);
-          } else {
-            values[key] = []
+          } 
+          if(dataSource === 'Excel') {
+            values[key] = mappedValues(epiContent, mapped, columnBData, columnCData, source );
           }
         }
       }
