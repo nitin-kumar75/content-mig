@@ -457,6 +457,8 @@ const getChildKeysIncludingStrings = (keys) => {
 
             mappedKeys[parentKey]['type'] = keys[key].type;
 
+            mappedKeys[parentKey]['mapped'] = keys[key].mapped;
+
             mappedKeys[parentKey]['data'] = [];
 
             // Find all child keys of this array
@@ -487,6 +489,35 @@ const getChildKeysIncludingStrings = (keys) => {
     return mappedKeys;
 }
 
+function convertToArray(input) {
+  const result = [];
+  const entries = {};
+
+  for (const key in input) {
+      const [prefix, index] = key.split('_');
+      const value = input[key];
+
+      // Initialize the entry for the index if it doesn't exist
+      if (!entries[index]) {
+          entries[index] = {};
+      }
+
+      // Dynamically assign the value based on the prefix
+      entries[index][prefix] = value;
+  }
+
+  // Convert the entries object into an array
+  for (const index in entries) {
+      result.push(entries[index]);
+  }
+
+  return result;
+
+}
+
+
+
+
 const mappedValues = (epiContent, mapped, columnBData, columnCData, source ) => {
   value = ''
   if(source === 'EPI') {
@@ -494,17 +525,20 @@ const mappedValues = (epiContent, mapped, columnBData, columnCData, source ) => 
   }
   if(source === 'Excel') {
     if(mapped.includes('array')) {
-      const updatedMapped = mapped.replace('_array');
-      const filterBColumns = columnBData.filter((cb) => cb.startsWith(updatedMapped) && cb.includes('_array'));
+      const updatedMapped = mapped.replace('_array','');
+      const filterBColumns = columnBData.filter((cb) => {
+        return typeof cb === 'string' && cb.startsWith(updatedMapped) && !cb.includes('_array')
+      });
+      value = [];
       if(filterBColumns.length > 0) {
           const obj = {}
           filterBColumns.forEach((element, index) => {
               const findIndex = columnBData.findIndex((ele) => ele === element);
               const valueData = columnCData[findIndex]
-              const spE = element.replace(`${updatedMapped}_`)
-              obj[element] = valueData;    
+              const spE = element.replace(`${updatedMapped}_`, '')
+              obj[spE] = valueData;    
           });
-          return obj;
+          value = convertToArray(obj);
       }
     } else {
       const findIndex = columnBData.findIndex((c) => c === mapped);
@@ -676,6 +710,7 @@ const mergeContent = async() => {
         const data = keyMapping[key]['data'];
         const dataSource = keyMapping[key]['source'];
         const dataType= keyMapping[key]['type'];
+        const dataMapped= keyMapping[key]['mapped'];
         if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
           const { target, source, mapped, type } = data;
           values[key] = mappedValues(epiContent, mapped, columnBData, columnCData, source );
@@ -697,7 +732,7 @@ const mergeContent = async() => {
             }).filter((a) => Object.keys(a).length > 0);
           } 
           if(dataSource === 'Excel') {
-            values[key] = mappedValues(epiContent, mapped, columnBData, columnCData, source );
+            values[key] = mappedValues(epiContent, dataMapped, columnBData, columnCData, dataSource );
           }
         }
       }
@@ -705,6 +740,7 @@ const mergeContent = async() => {
      
       const destinationFolder = path.join(outPutPath);
 
+     
       
       await fetchDataAndWriteFiles([{
         file: fileName,
