@@ -515,19 +515,25 @@ function convertToArray(input) {
 
 }
 
+const getUpdateVal = (str, val) => {
+  let update = val;
+  if(str.includes('ImageContentHubId') && val!== '') {
+     update = Number(val).toString()
+  }
+  return update;
+}
 
 
-
-const mappedValues = (epiContent, mapped, columnBData, columnCData, source ) => {
+const mappedValues = (epiContent, mapped, columnBData, columnCData, source, type ) => {
   value = ''
   if(source === 'EPI') {
     value = getValueByKeyPath(epiContent, mapped)
   }
   if(source === 'Excel') {
-    if(mapped.includes('array')) {
-      const updatedMapped = mapped.replace('_array','');
+    if(mapped.includes('Array')) {
+      const updatedMapped = mapped.replace('_Array','');
       const filterBColumns = columnBData.filter((cb) => {
-        return typeof cb === 'string' && cb.startsWith(updatedMapped) && !cb.includes('_array')
+        return typeof cb === 'string' && cb.startsWith(updatedMapped) && !cb.includes('_Array')
       });
       value = [];
       if(filterBColumns.length > 0) {
@@ -536,14 +542,14 @@ const mappedValues = (epiContent, mapped, columnBData, columnCData, source ) => 
               const findIndex = columnBData.findIndex((ele) => ele === element);
               const valueData = columnCData[findIndex]
               const spE = element.replace(`${updatedMapped}_`, '')
-              obj[spE] = valueData;    
+              obj[spE] = getUpdateVal(spE, valueData);    
           });
           value = convertToArray(obj);
       }
     } else {
       const findIndex = columnBData.findIndex((c) => c === mapped);
       if(findIndex >= 0) {
-        if(columnCData && columnCData[findIndex]) {
+        if(columnCData) {
           value = columnCData[findIndex]
         }
       }
@@ -598,8 +604,8 @@ const mergeContent = async() => {
         let isAccExist = true;
         for(let i = 0; i < accFileArr.length; i++) {
             const accFile = accFileArr[i];
-            if (fs.existsSync(inputFile)) {
-              const extname = path.extname(inputFile).toLowerCase();
+            if (fs.existsSync(accFile)) {
+              const extname = path.extname(accFile).toLowerCase();
               if (extname !== '.xls' && extname !== '.xlsx') {
                  isAccExist = false;
                  break;
@@ -689,6 +695,7 @@ const mergeContent = async() => {
         }
       }
       
+      
       const mappingExcelData = readExcelFile('Mapped.xlsx');
 
       let keys = {};
@@ -713,7 +720,8 @@ const mergeContent = async() => {
         const dataMapped= keyMapping[key]['mapped'];
         if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
           const { target, source, mapped, type } = data;
-          values[key] = mappedValues(epiContent, mapped, columnBData, columnCData, source );
+          const mapVal = mappedValues(epiContent, mapped, columnBData, columnCData, source, type );
+          values[key] = getUpdateVal(key, mapVal)
           updatedKeys[key] = type;
         } else {
           updatedKeys[key] = dataType;
@@ -732,7 +740,9 @@ const mergeContent = async() => {
             }).filter((a) => Object.keys(a).length > 0);
           } 
           if(dataSource === 'Excel') {
-            values[key] = mappedValues(epiContent, dataMapped, columnBData, columnCData, dataSource );
+            const mapVal  = mappedValues(epiContent, dataMapped, columnBData, columnCData, dataSource, dataType );
+            values[key] = getUpdateVal(key, mapVal)
+       
           }
         }
       }
@@ -740,11 +750,20 @@ const mergeContent = async() => {
      
       const destinationFolder = path.join(outPutPath);
 
-     
+
+      let resObj = createNestedJsonObject(updatedKeys, values);
+      if(resObj) {
+        const ParkDetails = resObj.ParkDetails;
+        resObj = {
+          "ParkDetails": [{
+            ...ParkDetails
+          }]
+        }
+      }
       
       await fetchDataAndWriteFiles([{
         file: fileName,
-        data: createNestedJsonObject(updatedKeys, values),
+        data: resObj,
       }], destinationFolder);
 
 
