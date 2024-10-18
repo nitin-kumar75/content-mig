@@ -4,7 +4,17 @@ const { Curl  } = require('node-libcurl');
 
 const XLSX = require('xlsx');
 
+const https = require('https')
+
 const axios = require('axios');
+
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false
+})
+
+const axiosInstance = axios.create({
+  httpsAgent: httpsAgent,
+})
 
 const moment = require('moment');
 
@@ -91,7 +101,7 @@ async function authenticate() {
   });
 
   try {
-    const response = await axios.post(url, data.toString(), {
+    const response = await axiosInstance.post(url, data.toString(), {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
@@ -131,7 +141,7 @@ async function getParkDetails(lang, token, parkId) {
   }
 
   try {
-    const response = await axios.get(url, {
+    const response = await axiosInstance.get(url, {
       maxRedirects: 10,
       timeout: 30000,
     });
@@ -150,7 +160,7 @@ async function getParks(lang, token, page) {
   }
 
   try {
-    const response = await axios.get(url, {
+    const response = await axiosInstance.get(url, {
       maxRedirects: 10,
       timeout: 30000,
     });
@@ -195,7 +205,7 @@ async function getExtractContent(lang, token, objectId, path, page = 1) {
 
 
   try {
-    const response = await axios.get(url, {
+    const response = await axiosInstance.get(url, {
       maxRedirects: 10,
       timeout: 30000,
     });
@@ -236,7 +246,7 @@ const fetchEpiServerContent = async (contentUrl, lang) => {
   };
 
   try {
-    const response = await axios.get(url, {
+    const response = await axiosInstance.get(url, {
       headers,
       maxRedirects: 10,
       timeout: 30000,
@@ -274,11 +284,10 @@ const fetchEpiServerChilderens = async (contentId, lang) => {
   };
 
   try {
-    const response = await axios.get(url, {
+    const response = await axiosInstance.get(url, {
       headers,
       maxRedirects: 10,
       timeout: 30000,
-      httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false }), // Disable SSL verification
     });
 
     return { statusCode: response.status, data: response.data, headers: response.headers };
@@ -320,7 +329,7 @@ const getParkDetailsPages = async(lang) => {
   const url = `${process.env.SITECORE_MAIN_SITE_URL}/parkdetailpage/getallparkpages/?locale=${lang}`;
   
   try {
-    const response = await axios.get(url,  {
+    const response = await axiosInstance.get(url,  {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },

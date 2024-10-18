@@ -2,7 +2,17 @@ require('dotenv').config();
 
 const { Curl  } = require('node-libcurl');
 
+const https = require('https')
+
 const axios = require('axios');
+
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false
+})
+
+const axiosInstance = axios.create({
+  httpsAgent: httpsAgent,
+})
 
 const moment = require('moment');
 
@@ -92,7 +102,7 @@ async function authenticate() {
   });
 
   try {
-    const response = await axios.post(url, data.toString(), {
+    const response = await axiosInstance.post(url, data.toString(), {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
@@ -116,12 +126,14 @@ const deleteFolderIfExists = async(folder) => {
   }
 };
 
-const createFolder = (folder) => {
+const createFolder = (folder, isChildFolder) => {
 
   if (!fs.existsSync(folder)) {
       fs.mkdirSync(folder);
-      fs.mkdirSync(`${folder}/${PARK_PATH}`);
-      fs.mkdirSync(`${folder}/${ACC_PATH}`);
+      if(isChildFolder) {
+        fs.mkdirSync(`${folder}/${PARK_PATH}`);
+        fs.mkdirSync(`${folder}/${ACC_PATH}`);
+      }
   } else {
       console.log(`Folder already exists: ${folder}`);
   }
@@ -189,7 +201,7 @@ async function getAccommodationByResourceId(token, resourceId) {
   const url = `${APIURL}/accommodations?resourceId=${resourceId}&supplierId=51&auth_token=${token}`;
 
   try {
-    const response = await axios.get(url,  {
+    const response = await axiosInstance.get(url,  {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -213,7 +225,7 @@ async function getOpeningTimes(lang, token, parkId, page = 1) {
   }
 
   try {
-    const response = await axios.get(url, {
+    const response = await axiosInstance.get(url, {
       maxRedirects: 10,
       timeout: 30000,
     });
@@ -232,7 +244,7 @@ async function getParkDetails(lang, token, parkId) {
   }
 
   try {
-    const response = await axios.get(url, {
+    const response = await axiosInstance.get(url, {
       maxRedirects: 10,
       timeout: 30000,
     });
@@ -251,7 +263,7 @@ async function getParks(lang, token, page) {
   }
 
   try {
-    const response = await axios.get(url, {
+    const response = await axiosInstance.get(url, {
       maxRedirects: 10,
       timeout: 30000,
     });
@@ -296,7 +308,7 @@ async function getExtractContent(lang, token, objectId, path, page = 1) {
 
 
   try {
-    const response = await axios.get(url, {
+    const response = await axiosInstance.get(url, {
       maxRedirects: 10,
       timeout: 30000,
     });
@@ -314,7 +326,7 @@ async function getParkMapImage(lang, token, parkId) {
   const url = `${APIURL}/images?language=${lang}&objectId=${parkId}&typeId=${typeId}&auth_token=${token}`;
 
   try {
-    const response = await axios.get(url, {
+    const response = await axiosInstance.get(url, {
       maxRedirects: 10,
       timeout: 30000,
     });
@@ -329,7 +341,7 @@ async function getImages(lang, token, objectId) {
   const url = `${APIURL}/images?language=${lang}&objectId=${objectId}&auth_token=${token}`;
 
   try {
-    const response = await axios.get(url, {
+    const response = await axiosInstance.get(url, {
       maxRedirects: 10,
       timeout: 30000,
     });
@@ -347,7 +359,7 @@ async function getActivities(token, parkId, isBookerPageId, lang, page=1) {
   const url = `${APIURL}/${path}?objectId=${parkId}&auth_token=${token}&page=${page}`;
 
   try {
-    const response = await axios.get(url, {
+    const response = await axiosInstance.get(url, {
       maxRedirects: 10,
       timeout: 30000,
     });
@@ -366,7 +378,7 @@ async function getVicinities(token, parkId, lang, page=1) {
   let url = `${APIURL}/tipstrips?objectId=${parkId}&language=${lang}&auth_token=${token}`;
 
   try {
-    const response = await axios.get(url, {
+    const response = await axiosInstance.get(url, {
       maxRedirects: 10,
       timeout: 30000,
     });
@@ -406,7 +418,7 @@ const fetchEpiServerContent = async (contentUrl, lang) => {
   };
 
   try {
-    const response = await axios.get(url, {
+    const response = await axiosInstance.get(url, {
       headers,
       maxRedirects: 10,
       timeout: 30000,
@@ -444,7 +456,7 @@ const fetchEpiServerChilderens = async (contentId, lang) => {
   };
 
   try {
-    const response = await axios.get(url, {
+    const response = await axiosInstance.get(url, {
       headers,
       maxRedirects: 10,
       timeout: 30000,
@@ -1048,7 +1060,7 @@ const getParkDetailsPages = async(lang) => {
   const url = `${process.env.MOBILE_MAIN_SITE_URL}/parkdetailpage/getallparkpages/?locale=${lang}`;
   
   try {
-    const response = await axios.get(url,  {
+    const response = await axiosInstance.get(url,  {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
@@ -1109,7 +1121,8 @@ const extractContent = async() => {
       const parkDetailsPages = await getParkDetailsPages('en')
   
       let contentMigration = [];
-  
+      
+      // demo park site is not working
       if(parkDetailsPages) {
         const findPark = parkDetailsPages.find((p) => p.Id == parkId);
         if(findPark) {
@@ -1123,7 +1136,7 @@ const extractContent = async() => {
             const frContent = await getMigrationContent('fr', parkId, authToken, slug);
             contentMigration = [
               {
-                file: `${PARK_PATH}/Park_${parkId}_ContentMigration.json`, 
+                file: `${PARK_PATH}/ContentMigration_P${parkId}.json`, 
                 data: {
                   en: enContent,
                   nl: nlContent,
@@ -1170,9 +1183,9 @@ const extractContent = async() => {
           individualAccomodation = accommodationObjectIds.map((acc, index) => {
             const ad = results[index]
             return {
-              file: `${ACC_PATH}/Accommodation-${acc}/Accommodation_P_${parkId}_A_${acc}.json`, 
-              data: ad && ad.items,
-              folder: `${ACC_PATH}/Accommodation-${acc}`
+              file: `${ACC_PATH}/Accommodation_${acc}/Accommodation_P${parkId}_A${acc}.json`, 
+              data: ad,
+              folder: `${ACC_PATH}/Accommodation_${acc}`
             }
           })
         }
@@ -1192,9 +1205,11 @@ const extractContent = async() => {
                items =  await getMoreItems('', ad.items, authToken, ad?.page?.numpages , 'images', acc)
             }
             return {
-              file: `${ACC_PATH}/Accommodation-${acc}/AccommodationImage_P_${parkId}_A_${acc}.json`, 
-              data: items,
-              folder: `${ACC_PATH}/Accommodation-${acc}`
+              file: `${ACC_PATH}/Accommodation_${acc}/ALlAccommodationImage_P${parkId}_A${acc}.json`, 
+              data: {
+                items
+              },
+              folder: `${ACC_PATH}/Accommodation_${acc}`
             }
           }))
         }
@@ -1202,22 +1217,22 @@ const extractContent = async() => {
   
       const files = [{
         file: `${PARK_PATH}/Park_${parkId}.json`, 
-        data: parkDetails && parkDetails.items,
+        data: parkDetails && parkDetails,
       }, 
       {
-        file: `${PARK_PATH}/Park_${parkId}_Images.json`, 
-        data: allImagesDetails && allImagesDetails.items,
+        file: `${PARK_PATH}/AllParkImages_P${parkId}.json`, 
+        data: allImagesDetails && allImagesDetails,
       },
       {
-        file: `${PARK_PATH}/Park_${parkId}_OpeningTimes.json`,
+        file: `${PARK_PATH}/OpeningTimes_P${parkId}.json`,
         data: openingTimesItems
       },
       {
-        file: `${PARK_PATH}/Park_${parkId}_Tips&Trips.json`,
-        data: vicinities && vicinities.items
+        file: `${PARK_PATH}/Tips&Trips_P${parkId}.json`,
+        data: vicinities && vicinities
       },
       {
-        file: `${PARK_PATH}/Park_${parkId}_Activities.json`,
+        file: `${PARK_PATH}/Activities_P${parkId}.json`,
         data: activitiesItems
       },
       ...contentMigration,
@@ -1234,9 +1249,21 @@ const extractContent = async() => {
 
       const folderName = `${destinationFolder}/Park_${parkId}`
 
+      const sourceFolderName = `${folderName}/RP_Source`
+
       await deleteFolderIfExists(folderName);
 
-      createFolder(folderName);
+      createFolder(folderName, false);
+
+      createFolder(`${sourceFolderName}`, true);
+
+      createFolder(`${folderName}/Pre_Harmonization`, false);
+
+      createChildFolder(`${folderName}/Post_Harmonization`, false)
+
+      createFolder(`${folderName}/LOV_Stibo`, false);
+
+      createFolder(`${folderName}/Park and Accomodation for Stibo`, false);
 
       const childFolders = [...individualAccomodation, ...allImagesAcc]
 
@@ -1245,13 +1272,13 @@ const extractContent = async() => {
       for(let acc = 0; acc < childFolders.length; acc++) {
         const ad = childFolders[acc];
         if(ad.folder && !existAcc.includes(ad.folder)) {
-          createChildFolder(`${folderName}/${ad.folder}`);
+          createChildFolder(`${sourceFolderName}/${ad.folder}`);
           existAcc.push(ad.folder)
         }
       }
 
       
-      await fetchDataAndWriteFiles(files, folderName);
+      await fetchDataAndWriteFiles(files, sourceFolderName);
 
       console.log(`Folder created: ${folderName}`);
 
