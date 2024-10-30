@@ -191,6 +191,7 @@ async function getKCReservationDetail(token, reservationNumber) {
       maxRedirects: 10,
       timeout: 30000,
     });
+    
 
     return response.data
   } catch (error) {

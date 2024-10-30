@@ -32,7 +32,7 @@ const { hideBin } = require('yargs/helpers');
 
 const argv = yargs(hideBin(process.argv)).argv;
 
-const ACC_PATH = `Accomodation Details`;
+const ACC_PATH = `Accommodation Details`;
 
 const PARK_PATH = `Park Details`;
 
@@ -1252,6 +1252,10 @@ const extractContent = async() => {
 
       const parkFolderName = `${folderName}/RP_Source/Park_${parkId}`
 
+      const preHarFolderName = `${folderName}/Pre_Harmonization/Park_${parkId}`
+
+      const postHarFolderName = `${folderName}/Post_Harmonization/Park_${parkId}`
+
       await deleteFolderIfExists(folderName);
 
       createFolder(folderName, false);
@@ -1262,11 +1266,11 @@ const extractContent = async() => {
 
       createFolder(`${folderName}/Pre_Harmonization`, false);
 
-      createFolder(`${folderName}/Pre_Harmonization/Park_${parkId}`, true);
+      createFolder(`${preHarFolderName}`, true);
 
       createChildFolder(`${folderName}/Post_Harmonization`, false)
 
-      createFolder(`${folderName}/Post_Harmonization/Park_${parkId}`, true);
+      createFolder(`${postHarFolderName}`, true);
 
       createFolder(`${folderName}/LOV_Stibo`, false);
 
@@ -1284,8 +1288,30 @@ const extractContent = async() => {
         }
       }
 
+      const existPreAcc = [];
+      for(let acc = 0; acc < childFolders.length; acc++) {
+        const ad = childFolders[acc];
+        if(ad.folder && !existPreAcc.includes(ad.folder)) {
+          createChildFolder(`${preHarFolderName}/${ad.folder}`);
+          existPreAcc.push(ad.folder)
+        }
+      }
+
+      const existPostAcc = [];
+      for(let acc = 0; acc < childFolders.length; acc++) {
+        const ad = childFolders[acc];
+        if(ad.folder && !existPostAcc.includes(ad.folder)) {
+          createChildFolder(`${postHarFolderName}/${ad.folder}`);
+          existPostAcc.push(ad.folder)
+        }
+      }
+
       
       await fetchDataAndWriteFiles(files, parkFolderName);
+
+      await fetchDataAndWriteFiles(files, preHarFolderName);
+
+      await fetchDataAndWriteFiles(files, postHarFolderName);
 
       console.log(`Folder created: ${folderName}`);
 
