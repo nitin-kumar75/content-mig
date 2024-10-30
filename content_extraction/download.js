@@ -1251,15 +1251,23 @@ const extractContent = async() => {
 
       const sourceFolderName = `${folderName}/RP_Source`
 
+      const parkFolderName = `${folderName}/RP_Source/Park_${parkId}`
+
       await deleteFolderIfExists(folderName);
 
       createFolder(folderName, false);
 
-      createFolder(`${sourceFolderName}`, true);
+      createFolder(`${sourceFolderName}`, false);
+
+      createFolder(`${parkFolderName}`, true)
 
       createFolder(`${folderName}/Pre_Harmonization`, false);
 
+      createFolder(`${folderName}/Pre_Harmonization/Park_${parkId}`, true);
+
       createChildFolder(`${folderName}/Post_Harmonization`, false)
+
+      createFolder(`${folderName}/Post_Harmonization/Park_${parkId}`, true);
 
       createFolder(`${folderName}/LOV_Stibo`, false);
 
@@ -1272,13 +1280,13 @@ const extractContent = async() => {
       for(let acc = 0; acc < childFolders.length; acc++) {
         const ad = childFolders[acc];
         if(ad.folder && !existAcc.includes(ad.folder)) {
-          createChildFolder(`${sourceFolderName}/${ad.folder}`);
+          createChildFolder(`${parkFolderName}/${ad.folder}`);
           existAcc.push(ad.folder)
         }
       }
 
       
-      await fetchDataAndWriteFiles(files, sourceFolderName);
+      await fetchDataAndWriteFiles(files, parkFolderName);
 
       console.log(`Folder created: ${folderName}`);
 
