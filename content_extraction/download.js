@@ -1,6 +1,5 @@
 require('dotenv').config();
 
-const { Curl  } = require('node-libcurl');
 
 const https = require('https')
 
