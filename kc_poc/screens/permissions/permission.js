@@ -134,100 +134,70 @@ const copyData = async () => {
     });
   };
 
-  const gethtmlContent = (key: string, lang: string) => {
-    return `
-        <html>
-          <head>
-            <script src="https://api.jimani.nl/small.js"></script>
-        </head>
-        <body>
-    
-        </body>
-        <div id="realTimeReservation"></div>
-        <script>
-            callAPI({ sort: "basic", lang: ${lang}, key: ${key} });
-        </script>
-        </html>
-   `;
-  }
-
   return (
-        // <View style={styles.modalContainer}>
-        //   <Text style={styles.title}>Bluetooth Connection</Text>
+    <>
+        <View style={styles.modalContainer}>
+          <Text style={styles.title}>Bluetooth Connection</Text>
 
-        //   <View style={styles.statusContainer}>
-        //     <Text style={styles.status}>
-        //        Bluetooth Enabled  
-        //        { bluetoothState === 'PoweredOn' ?
-        //          <Text style={styles.tick}>✔</Text>:
-        //          <ActivityIndicator size="small" color="#000" />
-        //         }
-        //     </Text>
-        //     <Text style={styles.status}>
-        //        Bluetooth Permission Granted 
-        //        { isPermissionsEnabled ?
-        //          <Text style={styles.tick}>✔</Text>
-        //         :
-        //         <ActivityIndicator size="small" color="#000" />
-        //         }
-        //     </Text>
-        //     {/* <Text style={styles.status}>
-        //        Device Found 
-        //        { allDevices.length > 0 ?
-        //        <Text style={styles.tick}>✔</Text>
-        //        :
-        //          <ActivityIndicator size="small" color="#000" />
-        //         }
+          <View style={styles.statusContainer}>
+            <Text style={styles.status}>
+               Bluetooth Enabled  
+               { bluetoothState === 'PoweredOn' ?
+                 <Text style={styles.tick}>✔</Text>:
+                 <ActivityIndicator size="small" color="#000" />
+                }
+            </Text>
+            <Text style={styles.status}>
+               Bluetooth Permission Granted 
+               { isPermissionsEnabled ?
+                 <Text style={styles.tick}>✔</Text>
+                :
+                <ActivityIndicator size="small" color="#000" />
+                }
+            </Text>
+            {/* <Text style={styles.status}>
+               Device Found 
+               { allDevices.length > 0 ?
+               <Text style={styles.tick}>✔</Text>
+               :
+                 <ActivityIndicator size="small" color="#000" />
+                }
                
-        //     </Text> */}
-        //   </View>
+            </Text> */}
+          </View>
 
-        //   <View style={styles.buttonContainer}>
-        //   { isPermissionsEnabled && bluetoothState === 'PoweredOn'  &&
-        //       <TouchableOpacity style={styles.button} onPress={() => { debug()}}>
-        //         <Text style={styles.buttonText}>Debug</Text>
-        //       </TouchableOpacity>
-        //     }
-        //     {/* { isPermissionsEnabled && bluetoothState === 'PoweredOn'  && allDevices.length > 0 &&
-        //       <TouchableOpacity style={styles.button} onPress={() => { unlockDoor()}}>
-        //         <Text style={styles.buttonText}>Unlock Door</Text>
-        //       </TouchableOpacity>
-        //     } */}
-        //     { pinCode !== null > 0 &&
-        //         <TouchableOpacity style={styles.button} onPress={() => { setPinModalVisible(true) }}>
-        //           <Text style={styles.buttonText}>Show Pin Code</Text>
-        //         </TouchableOpacity>
-        //     }
-        //   </View>
-        //   <View style={styles.modalContainer2}>
-        //   <View style={styles.item}>
-        //     <View style={styles.item}>
-        //       <ScrollView>{renderKeys(data)}</ScrollView>
-        //     </View>
-        //   </View>
-        //   </View>
-        //   <PinCodeModal code = { pinCode } visible={ isPinModalVisible } onClose={ () => { setPinModalVisible(false) } }></PinCodeModal>
+          <View style={styles.buttonContainer}>
+          { isPermissionsEnabled && bluetoothState === 'PoweredOn'  &&
+              <TouchableOpacity style={styles.button} onPress={() => { debug()}}>
+                <Text style={styles.buttonText}>Debug</Text>
+              </TouchableOpacity>
+            }
+            {/* { isPermissionsEnabled && bluetoothState === 'PoweredOn'  && allDevices.length > 0 &&
+              <TouchableOpacity style={styles.button} onPress={() => { unlockDoor()}}>
+                <Text style={styles.buttonText}>Unlock Door</Text>
+              </TouchableOpacity>
+            } */}
+            { pinCode !== null > 0 &&
+                <TouchableOpacity style={styles.button} onPress={() => { setPinModalVisible(true) }}>
+                  <Text style={styles.buttonText}>Show Pin Code</Text>
+                </TouchableOpacity>
+            }
+          </View>
+          <View style={styles.modalContainer2}>
+          <View style={styles.item}>
+            <View style={styles.item}>
+              <ScrollView>{renderKeys(data)}</ScrollView>
+            </View>
+          </View>
+          </View>
+          <PinCodeModal code = { pinCode } visible={ isPinModalVisible } onClose={ () => { setPinModalVisible(false) } }></PinCodeModal>
           
-        //   <DebugModal devices = { allDevices } visible={ isDebugModalVisible } copyData ={() => {copyData()}} onClose={ () => { setDebugModalVisible(false) } }></DebugModal>
+          <DebugModal devices = { allDevices } visible={ isDebugModalVisible } copyData ={() => {copyData()}} onClose={ () => { setDebugModalVisible(false) } }></DebugModal>
           
           
          
-        // </View>
-        <View style={styles.container}>
-        <WebView
-          originWhitelist={['*']}
-          source={{ html: gethtmlContent('77a7d31b752fd672b56fea68c099270dd7eb51f9', 'en') }}
-          javaScriptEnabled={true} // Enable JavaScript to run the script
-          style={styles.webview}
-          onError={(error) => {
-            console.log('Error--', error)
-          }}
-          onHttpError={(error: any) => {
-            console.log('HttpError', error)
-          }}
-          
-        />
-      </View>
+        </View>
+      </>
   );
 };
 

@@ -135,7 +135,7 @@ const ReservationDetails = ({ route, parkId }) => {
                   {/* {getCustomerBooking(item, parkId)?.status === 'DuringStay' && ( */}
 
                         <View style={styles.buttonContainer}>
-                          <TouchableOpacity style={styles.button} onPress={() => getDigitalKey(item.reservationNumber)}>
+                          <TouchableOpacity style={styles.button} onPress={() => getDigitalKey('00024337782000')}>
                               <Text style={styles.buttonText}>Get Digital Key</Text>
                             </TouchableOpacity>
                         </View>

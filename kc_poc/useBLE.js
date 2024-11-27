@@ -86,6 +86,56 @@ const handleManufacturerData = (device, ourLockId) => {
 };
 
 
+const handlerawScanRecordData = (device, ourLockId) => {
+  
+  const rawScanRecord = device.rawScanRecord;
+
+  const decodedData = base64ToByteArray(rawScanRecord);
+
+
+  
+  // Parse the manufacturerData if it exists
+  if (decodedData) {
+      const manufacturerBytes = Array.from(decodedData);
+      const manuCode = manufacturerBytes[0]; // Assuming first byte is manuCode
+      const debugging = true; // Set your debugging logic
+
+
+      if (manuCode === MANUCODE || debugging) {
+
+          const version = manufacturerBytes[1];
+          const deviceType = manufacturerBytes[2];
+          const lockNumberBytes = manufacturerBytes.slice(3, 7);
+          const lockIdBytes = manufacturerBytes.slice(7, 11);
+          const lockNumber = BytesHelper.mergeLsb(lockNumberBytes);
+          const lockId = BytesHelper.mergeLsb(lockIdBytes);
+
+          // console.log({
+          //   id: device?.id,
+          //   name: device?.name,
+          //   manuCode: manuCode,
+          //   version: version,
+          //   deviceType,
+          //   lockNumber,
+          //   lockId
+          // });
+
+            return {
+              id: device.id,
+              name: device.name,
+              manuCode: manuCode,
+              version: version,
+              deviceType,
+              lockNumber,
+              lockId,
+              rawScanRecord: rawScanRecord 
+          } 
+      }
+  }
+
+  return null;
+};
+
 
 import {
   BleError,
@@ -224,7 +274,7 @@ function useBLE() {
   };
 
   const isDuplicteDevice = (devices, nextDevice) =>
-    devices.findIndex((device) => nextDevice.id === device.id) > -1;
+    devices.findIndex((device) => nextDevice.manufacturerData.id === device.manufacturerData.id) > -1;
 
   const scanForPeripherals = (deviceType) =>
     bleManager.startDeviceScan(null, null, async(error, device) => {
@@ -234,11 +284,13 @@ function useBLE() {
       // console.log('device', device.manufacturerData)
         if (device && device.manufacturerData !== null) {
             const manufacturerData = handleManufacturerData(device);
+            const rawScanRecord = handlerawScanRecordData(device);
+            const scanData = {manufacturerData, rawScanRecord}
             // console.log('manufacturerData--', manufacturerData)
-            if(manufacturerData !== null) {
+            if(scanData !== null) {
                 setAllDevices((prevState) => {
-                  if (!isDuplicteDevice(prevState, manufacturerData)) {
-                    return [...prevState, manufacturerData];
+                  if (!isDuplicteDevice(prevState, scanData)) {
+                    return [...prevState, scanData];
                   }
                   return prevState;
                 });
