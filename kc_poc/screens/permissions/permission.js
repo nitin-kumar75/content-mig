@@ -9,6 +9,11 @@ import * as Device from 'expo-device';
 import PinCodeModal from "../../PinCodeModal"
 import DebugModal from "../../DebugModal"
 import { FlatList, ScrollView } from 'react-native-gesture-handler';
+
+
+import { Buffer } from 'buffer';
+
+
 // import { WebView } from 'react-native-webview';
 
 import Clipboard from "@react-native-clipboard/clipboard";
@@ -77,41 +82,55 @@ const Permission = ({ route })  => {
     }
   };
 
-  const unlockDoorDirectToken = () => {
+  const unlockBuffer = (isWithout) => {
     const token = data?.Tokens[0];
-    const lockId = data?.LockId;
-    // const deviceId = connectedDevice.id;
+    const message = Buffer.from(token, 'base64');
+    const decodec = Buffer.from(message).toString('base64')
     if (Device.isDevice) {
       if (Device.osName === 'Android') {
-        writeData(token, "", 'Android')
+        writeData(decodec, "", 'Android', isWithout)
       } else  {
-        writeData(token, lockId, 'Ios');
+        writeData(decodec, lockId, 'Ios', isWithout);
       }
     }
 
   }
-  const unlockDoorEncodedToken = () => {
+
+  const unlockDoorDirectToken = (isWithout) => {
     const token = data?.Tokens[0];
     const lockId = data?.LockId;
     // const deviceId = connectedDevice.id;
     if (Device.isDevice) {
       if (Device.osName === 'Android') {
-        writeData(base64.encode(token), "", 'Android')
+        writeData(token, "", 'Android', isWithout)
       } else  {
-        writeData(token, lockId, 'Ios');
+        writeData(token, lockId, 'Ios', isWithout);
       }
     }
 
   }
-  const unlockDoorDecodeToken = () => {
+  const unlockDoorEncodedToken = (isWithout) => {
     const token = data?.Tokens[0];
     const lockId = data?.LockId;
     // const deviceId = connectedDevice.id;
     if (Device.isDevice) {
       if (Device.osName === 'Android') {
-        writeData(base64.decode(token), "", 'Android')
+        writeData(base64.encode(token), "", 'Android', isWithout)
       } else  {
-        writeData(token, lockId, 'Ios');
+        writeData(token, lockId, 'Ios', isWithout);
+      }
+    }
+
+  }
+  const unlockDoorDecodeToken = (isWithout) => {
+    const token = data?.Tokens[0];
+    const lockId = data?.LockId;
+    // const deviceId = connectedDevice.id;
+    if (Device.isDevice) {
+      if (Device.osName === 'Android') {
+        writeData(base64.decode(token), "", 'Android', isWithout)
+      } else  {
+        writeData(token, lockId, 'Ios', isWithout);
       }
     }
 
@@ -221,6 +240,18 @@ const copyDataChar = async () => {
                   </TouchableOpacity>
                   </View>
             }
+
+{ isPermissionsEnabled && bluetoothState === 'PoweredOn'  && allDevices.length > 0 && connectedDevice != null &&
+                  <View style={{height:50, marginBottom:10}}>
+                  <TouchableOpacity style={styles.button} onPress={() => { unlockBuffer()}}>
+                    <Text style={styles.buttonText}>Unlock Door with buffer</Text>
+                  </TouchableOpacity>
+                  </View>
+            }
+
+
+
+
             { isPermissionsEnabled && bluetoothState === 'PoweredOn'  && allDevices.length > 0 && connectedDevice != null &&
               <View style={{height:50, marginBottom:10}}>
               <TouchableOpacity style={styles.button} onPress={() => { unlockDoorDirectToken()}}>
@@ -242,6 +273,45 @@ const copyDataChar = async () => {
               </TouchableOpacity>
               </View>
             }
+
+
+
+{ isPermissionsEnabled && bluetoothState === 'PoweredOn'  && allDevices.length > 0 && connectedDevice != null &&
+                  <View style={{height:50, marginBottom:10}}>
+                  <TouchableOpacity style={styles.button} onPress={() => { unlockBuffer(true)}}>
+                    <Text style={styles.buttonText}>Unlock Door with buffer W</Text>
+                  </TouchableOpacity>
+                  </View>
+            }
+
+
+
+
+            { isPermissionsEnabled && bluetoothState === 'PoweredOn'  && allDevices.length > 0 && connectedDevice != null &&
+              <View style={{height:50, marginBottom:10}}>
+              <TouchableOpacity style={styles.button} onPress={() => { unlockDoorDirectToken(true)}}>
+                <Text style={styles.buttonText}>Unlock Door with direct Token W</Text>
+              </TouchableOpacity>
+              </View>
+            }
+            { isPermissionsEnabled && bluetoothState === 'PoweredOn'  && allDevices.length > 0 && connectedDevice != null &&
+              <View style={{height:50, marginBottom:10}}>
+              <TouchableOpacity style={styles.button} onPress={() => { unlockDoorEncodedToken(true)}}>
+                <Text style={styles.buttonText}>Unlock Door with encoded token W</Text>
+              </TouchableOpacity>
+              </View>
+            }
+            { isPermissionsEnabled && bluetoothState === 'PoweredOn'  && allDevices.length > 0 && connectedDevice != null &&
+              <View style={{height:50, marginBottom:10}}>
+              <TouchableOpacity style={styles.button} onPress={() => { unlockDoorDecodeToken(true)}}>
+                <Text style={styles.buttonText}>Unlock Door decoded token W</Text>
+              </TouchableOpacity>
+              </View>
+            }
+
+
+
+
             { pinCode !== null > 0 &&
               <View style={{height:50, marginBottom:10}}>
                 <TouchableOpacity style={styles.button} onPress={() => { setPinModalVisible(true) }}>

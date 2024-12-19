@@ -6,11 +6,14 @@ import * as ExpoDevice from "expo-device";
 
 import base64 from "react-native-base64";
 
+
+
 const serviceID = "d3810001-96ad-447f-a62f-fd0e6460d4d6";
   
-const sendCharacteristicID = "d3810002-96ad-447f-a62f-fd0e6460d4d6";
+const char1 = "d3810002-96ad-447f-a62f-fd0e6460d4d6";
 
-const readCharacteristicID = "d3810002-96ad-447f-a62f-fd0e6460d4d6";
+const char2 = "d3810003-96ad-447f-a62f-fd0e6460d4d6";
+
 
 const MANUCODE = 65534;
 
@@ -269,7 +272,7 @@ function useBLE() {
                 console.log(`Characteristic UUID: ${char.uuid}, Properties: ${char.properties}`);
                 data.push({
                   char: char.uuid,
-                  prop: char.properties
+                  prop: char
                 })
             });
             setChars({
@@ -285,27 +288,45 @@ function useBLE() {
     }
   }
 
-  const writeData = async (token, deviceId, deviceType) => {
-    // console.log("token - ",token );
-    // console.log("deviceId - ", deviceId );
-    // console.log("deviceType - ", deviceType );
-    // console.log("serviceID - ", serviceID );
-    // console.log("sendCharacteristicID - ", sendCharacteristicID );
+
+ 
+
+  
+
+  const writeData = async (token, deviceId, deviceType, isWithout) => {
     try {
 
-      if(deviceType === 'Android') {
-          // const deviceConnection = await bleManager.writeCharacteristicWithResponseForDevice(
-          //   deviceId,
-          //   serviceID,
-          //   sendCharacteristicID,
-          //   token
-          // );
-          await connectedDevice.writeCharacteristicWithResponseForService(
+      if(isWithout) {
+        alert(char1)
+            await connectedDevice.writeCharacteristicWithoutResponseForService(
+              serviceID,
+              char1,
+              token
+            );
+          alert(char2)
+          await connectedDevice.writeCharacteristicWithoutResponseForService(
             serviceID,
-            sendCharacteristicID,
+            char2,
             token
-        );
-          alert('Unlocked Door')
+          );
+          alert('Unlocked Door');
+        
+      } else {
+        if(deviceType === 'Android') {
+            alert(char1)
+              await connectedDevice.writeCharacteristicWithResponseForService(
+                serviceID,
+                char1,
+                token
+              );
+            alert(char2)
+            await connectedDevice.writeCharacteristicWithResponseForService(
+              serviceID,
+              char2,
+              token
+            );
+            alert('Unlocked Door')
+        }
       }
     } catch (e) {
       alert('Failed to unlock door')
@@ -313,6 +334,9 @@ function useBLE() {
       console.log("FAILED TO Open Door", e);
     }
   };
+
+
+  
 
   const isDuplicteDevice = (devices, nextDevice) =>
     devices.findIndex((device) => nextDevice.id === device.id) > -1;
@@ -405,7 +429,8 @@ function useBLE() {
     requestPermissions,
     scanForPeripherals,
     startStreamingData,
-    writeData
+    writeData,
+    allChars
   };
 }
 
