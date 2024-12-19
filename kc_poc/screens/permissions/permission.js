@@ -9,9 +9,10 @@ import * as Device from 'expo-device';
 import PinCodeModal from "../../PinCodeModal"
 import DebugModal from "../../DebugModal"
 import { FlatList, ScrollView } from 'react-native-gesture-handler';
-import { WebView } from 'react-native-webview';
+// import { WebView } from 'react-native-webview';
 
 import Clipboard from "@react-native-clipboard/clipboard";
+import base64 from 'react-native-base64';
 
 
 
@@ -36,6 +37,7 @@ const Permission = ({ route })  => {
     bluetoothState,
     writeData,
     scanForPeripherals,
+    allChars
   } = useBLE();
 
 
@@ -71,17 +73,43 @@ const Permission = ({ route })  => {
   const scanForDevices = async () => {
     const isPermissionsEnabled = await requestPermissions();
     if (isPermissionsEnabled) {
-      scanForPeripherals(Device.isDevice && Device.osName === 'Android' ? 'Android' : 'Ios');
+      scanForPeripherals(Device.isDevice && Device.osName === 'Android' ? 'Android' : 'Ios', data?.LockId);
     }
   };
 
-  const unlockDoor = () => {
+  const unlockDoorDirectToken = () => {
     const token = data?.Tokens[0];
     const lockId = data?.LockId;
-    const deviceId = connectedDevice.id;
+    // const deviceId = connectedDevice.id;
     if (Device.isDevice) {
       if (Device.osName === 'Android') {
-        writeData(token, deviceId, 'Android')
+        writeData(token, "", 'Android')
+      } else  {
+        writeData(token, lockId, 'Ios');
+      }
+    }
+
+  }
+  const unlockDoorEncodedToken = () => {
+    const token = data?.Tokens[0];
+    const lockId = data?.LockId;
+    // const deviceId = connectedDevice.id;
+    if (Device.isDevice) {
+      if (Device.osName === 'Android') {
+        writeData(base64.encode(token), "", 'Android')
+      } else  {
+        writeData(token, lockId, 'Ios');
+      }
+    }
+
+  }
+  const unlockDoorDecodeToken = () => {
+    const token = data?.Tokens[0];
+    const lockId = data?.LockId;
+    // const deviceId = connectedDevice.id;
+    if (Device.isDevice) {
+      if (Device.osName === 'Android') {
+        writeData(base64.decode(token), "", 'Android')
       } else  {
         writeData(token, lockId, 'Ios');
       }
@@ -101,9 +129,21 @@ const copyData = async () => {
   }))
 }
 
+const copyDataChar = async () => {
+
+  await Clipboard.setString(JSON.stringify({
+      data: allChars
+    }))
+  console.log(JSON.stringify({
+    data: allChars
+  }))
+}
+
   const debug = () => {
      setDebugModalVisible(true)
   }
+
+
   
   const renderKeys = (data) => {
     return Object.keys(data).map((key) => {
@@ -134,100 +174,97 @@ const copyData = async () => {
     });
   };
 
-  const gethtmlContent = (key: string, lang: string) => {
-    return `
-        <html>
-          <head>
-            <script src="http://api.jimani.nl/small.js"></script>
-        </head>
-        <body>
-    
-        </body>
-        <div id="realTimeReservation"></div>
-        <script>
-            callAPI({ sort: "basic", lang: ${lang}, key: ${key} });
-        </script>
-        </html>
-   `;
-  }
-
   return (
-        // <View style={styles.modalContainer}>
-        //   <Text style={styles.title}>Bluetooth Connection</Text>
+    <>
+        <View style={styles.modalContainer}>
+          <Text style={styles.title}>Bluetooth Connection</Text>
 
-        //   <View style={styles.statusContainer}>
-        //     <Text style={styles.status}>
-        //        Bluetooth Enabled  
-        //        { bluetoothState === 'PoweredOn' ?
-        //          <Text style={styles.tick}>✔</Text>:
-        //          <ActivityIndicator size="small" color="#000" />
-        //         }
-        //     </Text>
-        //     <Text style={styles.status}>
-        //        Bluetooth Permission Granted 
-        //        { isPermissionsEnabled ?
-        //          <Text style={styles.tick}>✔</Text>
-        //         :
-        //         <ActivityIndicator size="small" color="#000" />
-        //         }
-        //     </Text>
-        //     {/* <Text style={styles.status}>
-        //        Device Found 
-        //        { allDevices.length > 0 ?
-        //        <Text style={styles.tick}>✔</Text>
-        //        :
-        //          <ActivityIndicator size="small" color="#000" />
-        //         }
+          <View style={styles.statusContainer}>
+            <Text style={styles.status}>
+               Bluetooth Enabled  
+               { bluetoothState === 'PoweredOn' ?
+                 <Text style={styles.tick}>✔</Text>:
+                 <ActivityIndicator size="small" color="#000" />
+                }
+            </Text>
+            <Text style={styles.status}>
+               Bluetooth Permission Granted 
+               { isPermissionsEnabled ?
+                 <Text style={styles.tick}>✔</Text>
+                :
+                <ActivityIndicator size="small" color="#000" />
+                }
+            </Text>
+            <Text style={styles.status}>
+               Device Found 
+               { allDevices.length > 0 ?
+               <Text style={styles.tick}>✔</Text>
+               :
+                 <ActivityIndicator size="small" color="#000" />
+                }
                
-        //     </Text> */}
-        //   </View>
+            </Text>
+          </View>
 
-        //   <View style={styles.buttonContainer}>
-        //   { isPermissionsEnabled && bluetoothState === 'PoweredOn'  &&
-        //       <TouchableOpacity style={styles.button} onPress={() => { debug()}}>
-        //         <Text style={styles.buttonText}>Debug</Text>
-        //       </TouchableOpacity>
-        //     }
-        //     {/* { isPermissionsEnabled && bluetoothState === 'PoweredOn'  && allDevices.length > 0 &&
-        //       <TouchableOpacity style={styles.button} onPress={() => { unlockDoor()}}>
-        //         <Text style={styles.buttonText}>Unlock Door</Text>
-        //       </TouchableOpacity>
-        //     } */}
-        //     { pinCode !== null > 0 &&
-        //         <TouchableOpacity style={styles.button} onPress={() => { setPinModalVisible(true) }}>
-        //           <Text style={styles.buttonText}>Show Pin Code</Text>
-        //         </TouchableOpacity>
-        //     }
-        //   </View>
-        //   <View style={styles.modalContainer2}>
-        //   <View style={styles.item}>
-        //     <View style={styles.item}>
-        //       <ScrollView>{renderKeys(data)}</ScrollView>
-        //     </View>
-        //   </View>
-        //   </View>
-        //   <PinCodeModal code = { pinCode } visible={ isPinModalVisible } onClose={ () => { setPinModalVisible(false) } }></PinCodeModal>
+          <View style={styles.buttonContainer}>
+          { isPermissionsEnabled && bluetoothState === 'PoweredOn'  &&
+              <View style={{height:50, marginBottom:10}} >
+              <TouchableOpacity style={styles.button} onPress={() => { debug()}}>
+                <Text style={styles.buttonText}>Debug</Text>
+              </TouchableOpacity>
+              </View>
+            }
+            { isPermissionsEnabled && bluetoothState === 'PoweredOn'  && allDevices.length > 0 && connectedDevice != null &&
+                  <View style={{height:50, marginBottom:10}}>
+                  <TouchableOpacity style={styles.button} onPress={() => { copyDataChar()}}>
+                    <Text style={styles.buttonText}>Debug Service</Text>
+                  </TouchableOpacity>
+                  </View>
+            }
+            { isPermissionsEnabled && bluetoothState === 'PoweredOn'  && allDevices.length > 0 && connectedDevice != null &&
+              <View style={{height:50, marginBottom:10}}>
+              <TouchableOpacity style={styles.button} onPress={() => { unlockDoorDirectToken()}}>
+                <Text style={styles.buttonText}>Unlock Door with direct Token</Text>
+              </TouchableOpacity>
+              </View>
+            }
+            { isPermissionsEnabled && bluetoothState === 'PoweredOn'  && allDevices.length > 0 && connectedDevice != null &&
+              <View style={{height:50, marginBottom:10}}>
+              <TouchableOpacity style={styles.button} onPress={() => { unlockDoorEncodedToken()}}>
+                <Text style={styles.buttonText}>Unlock Door with encoded token</Text>
+              </TouchableOpacity>
+              </View>
+            }
+            { isPermissionsEnabled && bluetoothState === 'PoweredOn'  && allDevices.length > 0 && connectedDevice != null &&
+              <View style={{height:50, marginBottom:10}}>
+              <TouchableOpacity style={styles.button} onPress={() => { unlockDoorDecodeToken()}}>
+                <Text style={styles.buttonText}>Unlock Door decoded token</Text>
+              </TouchableOpacity>
+              </View>
+            }
+            { pinCode !== null > 0 &&
+              <View style={{height:50, marginBottom:10}}>
+                <TouchableOpacity style={styles.button} onPress={() => { setPinModalVisible(true) }}>
+                  <Text style={styles.buttonText}>Show Pin Code</Text>
+                </TouchableOpacity>
+                </View>
+            }
+          </View>
+          {/* <View style={styles.modalContainer2}>
+          <View style={styles.item}>
+            <View style={styles.item}>
+              <ScrollView>{renderKeys(data)}</ScrollView>
+            </View>
+          </View>
+          </View> */}
+          <PinCodeModal code = { pinCode } visible={ isPinModalVisible } onClose={ () => { setPinModalVisible(false) } }></PinCodeModal>
           
-        //   <DebugModal devices = { allDevices } visible={ isDebugModalVisible } copyData ={() => {copyData()}} onClose={ () => { setDebugModalVisible(false) } }></DebugModal>
+          <DebugModal devices = { allDevices } visible={ isDebugModalVisible } copyData ={() => {copyData()}} onClose={ () => { setDebugModalVisible(false) } }></DebugModal>
           
           
          
-        // </View>
-        <View style={styles.container}>
-        <WebView
-          originWhitelist={['*']}
-          source={{ html: gethtmlContent('77a7d31b752fd672b56fea68c099270dd7eb51f9', 'en') }}
-          javaScriptEnabled={true} // Enable JavaScript to run the script
-          style={styles.webview}
-          onError={(error) => {
-            console.log('Error--', error)
-          }}
-          onHttpError={(error: any) => {
-            console.log('HttpError', error)
-          }}
-          
-        />
-      </View>
+        </View>
+      </>
   );
 };
 
@@ -254,13 +291,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     width: '100%',
-    marginBottom: 15,
+    padding: 15,
   },
   button: {
     flex: 1,
+    height:10,
     backgroundColor: '#007BFF',
     paddingVertical: 10,
     marginHorizontal: 5,

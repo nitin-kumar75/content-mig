@@ -22,8 +22,8 @@ const Login = (props) => {
 
   const navigation = useNavigation()
 
-  const [emailAdd, onChangeEmail] = useState('nenad_maljugic@epam.com');
-  const [password, onChangePassword] = useState('Roompot1234!@');
+  const [emailAdd, onChangeEmail] = useState('cees@emakina.nl');
+  const [password, onChangePassword] = useState('Blaat123456!');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [responseData, setResponseData] = useState(null);

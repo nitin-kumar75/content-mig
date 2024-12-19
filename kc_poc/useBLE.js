@@ -8,7 +8,7 @@ import base64 from "react-native-base64";
 
 const serviceID = "d3810001-96ad-447f-a62f-fd0e6460d4d6";
   
-const sendCharacteristicID = "d3810003-96ad-447f-a62f-fd0e6460d4d6";
+const sendCharacteristicID = "d3810002-96ad-447f-a62f-fd0e6460d4d6";
 
 const readCharacteristicID = "d3810002-96ad-447f-a62f-fd0e6460d4d6";
 
@@ -23,22 +23,83 @@ const BytesHelper = {
 };
 
 
-const base64ToByteArray = (base64) => {
-  const binaryString = atob(base64);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
+const base64ToUint8Array = (base64) => {
+  const binaryString = atob(base64); // Decode base64 string into a binary string
+  const byteArray = new Uint8Array(binaryString.length);
+
+  for (let i = 0; i < binaryString.length; i++) {
+    byteArray[i] = binaryString.charCodeAt(i);
   }
-  return bytes;
+
+  return byteArray;
 };
 
+function mergeLsb(bytes) {
+  // Merge bytes to the appropriate lock ID format
+  return (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
+}
 
 let handleManufacturerData = (device, ourLockId) => {
 
   const manufacturerData = device.manufacturerData;
+  console.log("manufacturerData -- ", manufacturerData, ourLockId)
+  if(manufacturerData !== null){
+    let data = base64ToUint8Array(manufacturerData); 
 
-  const decodedData = base64ToByteArray(manufacturerData);
+    let index = 0;
+
+    // Parse manufacturer code (2 bytes)
+    const manuCode = data[index++] + (data[index++] << 8);
+
+    
+    if(manuCode == MANUCODE) {
+        const version = data[index++];
+        const deviceType = data[index++]
+        const lockNumber = data[index++] + (data[index++] << 8);
+  
+
+        const lockId = new DataView(Uint8Array.from(data.slice(index, index + 4)).buffer).getUint32(0, true);
+
+        // alert("version -" + version);
+        // alert("deviceType -" + deviceType);
+        // alert("lockNumber -" + lockNumber);
+        // alert("lockId -" + lockId);
+
+
+          // console.log({
+          //   id: device.id,
+          //   name: device.name,
+          //   manuCode: manuCode,
+          //   version: version,
+          //   deviceType,
+          //   lockNumber,
+          //   lockId
+          // });
+          if(ourLockId == lockId){
+            return {
+              id: device.id,
+              name: device.name,
+              manuCode: manuCode,
+              version: version,
+              deviceType,
+              lockNumber,
+              lockId,
+              manuData: manufacturerData
+            
+          } } else{
+           return null;
+          }
+  }}
+
+  return null;
+};
+
+
+const handlerawScanRecordData = (device, ourLockId) => {
+  
+  const rawScanRecord = device.rawScanRecord;
+
+  const decodedData = base64ToByteArray(rawScanRecord);
 
 
   
@@ -59,8 +120,8 @@ let handleManufacturerData = (device, ourLockId) => {
           const lockId = BytesHelper.mergeLsb(lockIdBytes);
 
           // console.log({
-          //   id: device.id,
-          //   name: device.name,
+          //   id: device?.id,
+          //   name: device?.name,
           //   manuCode: manuCode,
           //   version: version,
           //   deviceType,
@@ -76,8 +137,7 @@ let handleManufacturerData = (device, ourLockId) => {
               deviceType,
               lockNumber,
               lockId,
-              manuData: manufacturerData
-            
+              rawScanRecord: rawScanRecord 
           } 
       }
   }
@@ -86,13 +146,13 @@ let handleManufacturerData = (device, ourLockId) => {
 };
 
 
-
 import {
   BleError,
   BleManager,
   Characteristic,
   Device,
 } from "react-native-ble-plx";
+import { result } from "./result";
 // import Clipboard from "@react-native-clipboard/clipboard";
 
 const bleManager = new BleManager();
@@ -106,6 +166,8 @@ function useBLE() {
   const [bluetoothState, setBluetoothState] = useState('unknown');
 
   const [color, setColor] = useState("white");
+
+  onst [allChars, setChars] = useState([]);
 
   useEffect(() => {
 
@@ -190,30 +252,59 @@ function useBLE() {
 
   const connectToDevice = async (device) => {
     try {
+      alert("device.id - " + device.id);
       if(device.id) {
         const deviceConnection = await bleManager.connectToDevice(device.id);
-        if(!connectedDevice) {
-          console.log('Connect to', deviceConnection.name)
-          setConnectedDevice(device);
+        alert('Connect to '+ deviceConnection);
+        if(connectedDevice == null) {
+          // console.log('Connect to', deviceConnection.name)
+          setConnectedDevice(deviceConnection);
         }
         await deviceConnection.discoverAllServicesAndCharacteristics();
+        const services = await deviceConnection.services();
+        services.forEach(async (service) => {
+            const characteristics = await service.characteristics();
+            let data = [];
+            characteristics.forEach((char) => {
+                console.log(`Characteristic UUID: ${char.uuid}, Properties: ${char.properties}`);
+                data.push({
+                  char: char.uuid,
+                  prop: char.properties
+                })
+            });
+            setChars({
+              service:  service,
+              data: data
+            })
+        });
         console.log('Service and characterstic discovered', deviceConnection)
       }
     } catch (e) {
+      alert(e);
       console.log("FAILED TO CONNECT", e);
     }
   }
 
   const writeData = async (token, deviceId, deviceType) => {
+    // console.log("token - ",token );
+    // console.log("deviceId - ", deviceId );
+    // console.log("deviceType - ", deviceType );
+    // console.log("serviceID - ", serviceID );
+    // console.log("sendCharacteristicID - ", sendCharacteristicID );
     try {
 
       if(deviceType === 'Android') {
-          const deviceConnection = await bleManager.writeCharacteristicWithResponseForDevice(
-            device.id,
+          // const deviceConnection = await bleManager.writeCharacteristicWithResponseForDevice(
+          //   deviceId,
+          //   serviceID,
+          //   sendCharacteristicID,
+          //   token
+          // );
+          await connectedDevice.writeCharacteristicWithResponseForService(
             serviceID,
             sendCharacteristicID,
-            base64.encode(token)
-          );
+            token
+        );
           alert('Unlocked Door')
       }
     } catch (e) {
@@ -226,23 +317,41 @@ function useBLE() {
   const isDuplicteDevice = (devices, nextDevice) =>
     devices.findIndex((device) => nextDevice.id === device.id) > -1;
 
-  const scanForPeripherals = (deviceType) =>
+  const scanForPeripherals = (deviceType, lockId) =>
+    // result.devices.map(async(d,i) => {
+    //   // handleManufacturerData(d.manufacturerData,lockId);
+    //   const manufacturerData = handleManufacturerData(d.manufacturerData, lockId);
+    //   // const rawScanRecord = handlerawScanRecordData(device);
+    //   const scanData = manufacturerData
+    //   // console.log('manufacturerData--', manufacturerData)
+    //   if(scanData !== null) {
+    //       setAllDevices((prevState) => {
+    //         if (!isDuplicteDevice(prevState, scanData)) {
+    //           return [...prevState, scanData];
+    //         }
+    //         return prevState;
+    //       });
+    //       console.log(scanData)
+    //       await connectToDevice(scanData)
+    //   }
+    // })
     bleManager.startDeviceScan(null, null, async(error, device) => {
       if (error) {
         console.log(error);
       }
-      // console.log('device', device.manufacturerData)
         if (device && device.manufacturerData !== null) {
-            const manufacturerData = handleManufacturerData(device);
+            const manufacturerData = handleManufacturerData(device, lockId);
+            // const rawScanRecord = handlerawScanRecordData(device);
+            const scanData = manufacturerData
             // console.log('manufacturerData--', manufacturerData)
-            if(manufacturerData !== null) {
+            if(scanData !== null) {
                 setAllDevices((prevState) => {
-                  if (!isDuplicteDevice(prevState, manufacturerData)) {
-                    return [...prevState, manufacturerData];
+                  if (!isDuplicteDevice(prevState, scanData)) {
+                    return [...prevState, scanData];
                   }
                   return prevState;
                 });
-                // await connectToDevice(manufacturerData)
+                await connectToDevice(scanData)
             }
         }
      
