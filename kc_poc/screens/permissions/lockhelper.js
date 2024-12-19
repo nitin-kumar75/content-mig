@@ -28,7 +28,7 @@ class LockBluetoothHelper {
         }
     }
 
-    function base64ToUint8Array(base64) => {
+    base64ToUint8Array(base64) {
         const binaryString = atob(base64); // Decode base64 string into a binary string
         const byteArray = new Uint8Array(binaryString.length);
       
@@ -39,19 +39,19 @@ class LockBluetoothHelper {
         return byteArray;
     }
       
-    function mergeLsb(bytes) {
+    mergeLsb(bytes) {
         // Merge bytes to the appropriate lock ID format
         return (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
     }
       
-    function handleManufacturerData(device, ourLockId) => {
+    handleManufacturerData(device, ourLockId)  {
       
         const manufacturerData = device.manufacturerData;
 
         console.log("manufacturerData -- ", manufacturerData, ourLockId)
         if(manufacturerData !== null){
 
-          let data = base64ToUint8Array(manufacturerData); 
+          let data = this.base64ToUint8Array(manufacturerData); 
       
           let index = 0;
       
@@ -85,7 +85,7 @@ class LockBluetoothHelper {
         }}
       
         return null;
-      };
+      }
 
     async startConnection() {
         try {
