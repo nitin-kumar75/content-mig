@@ -1308,9 +1308,12 @@ router.get('/parks', async function(req, res, next) {
     if(results.length > 0) {
       for(let i = 0; i < results.length; i++) {
           const item = results[i].items;
-          items.push(
-            ...item
-          )
+          console.log('item', item)
+          if(!item.deleted && !item.invisible) {
+            items.push(
+              ...item
+            )
+          }
       }
     }
      
@@ -1318,11 +1321,13 @@ router.get('/parks', async function(req, res, next) {
       const langF = a.lang.find((l) => l.language === 'en')
       return {
         objectId: a.objectId,
-        name: langF && langF.name      
+        name: langF && langF.name ,
+        deleted: a.deleted  ,
+        invisible: a.invisible   
       }
     });
 
-    res.json(items)
+    res.json(parks)
  
   } catch (error) {
     console.error('Error:', error);

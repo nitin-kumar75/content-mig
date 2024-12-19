@@ -138,7 +138,7 @@ const copyData = async () => {
     return `
         <html>
           <head>
-            <script src="https://api.jimani.nl/small.js"></script>
+            <script src="http://api.jimani.nl/small.js"></script>
         </head>
         <body>
     

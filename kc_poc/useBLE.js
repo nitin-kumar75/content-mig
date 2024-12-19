@@ -34,7 +34,7 @@ const base64ToByteArray = (base64) => {
 };
 
 
-const handleManufacturerData = (device, ourLockId) => {
+let handleManufacturerData = (device, ourLockId) => {
 
   const manufacturerData = device.manufacturerData;
 

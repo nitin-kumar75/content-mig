@@ -38,6 +38,7 @@ const PARK_PATH = `Park Details`;
 
 var _ = require('lodash');
 const { error } = require('console');
+const { type } = require('os');
 
 const APIURL = process.env.MOBILE_APIURL;
 
@@ -1074,6 +1075,60 @@ const getParkDetailsPages = async(lang) => {
 }
 
 
+const getAccomodationPath  = (lang, accommodationTypes) => {
+  const data = {
+      en: [
+          {
+              type: 'Accommodation Bunglow',
+              values: ['Log Cabin','Chalet','White Camp Cottage','Bungalow','Bungalow owner','Contracting parties','Apartment','Loge','Hotel room','Villa','Beach House','Lodge','Suite','Group accommodation']
+          },
+          {
+              type: 'Accommodation Camping',
+              values: ['Pitch']
+          },
+          {
+            type: 'Accommodation Mobile Homes',
+            values: ['Mobile home','Holiday tent']
+         }
+      ],
+      nl: [
+        {
+            type: 'Accommodation Bunglow',
+            values: ['Blokhut','Chalet','White Camp Cottage','Bungalow','Bungalow eigenaar','Contractanten','Appartement','Loge','Hotelkamer','Villa','Beach House','Lodge','Suite','Groepsverblijf']
+        },
+        {
+            type: 'Accommodation Camping',
+            values: ['Kampeerplaats']
+        },
+        {
+          type: 'Accommodation Mobile Homes',
+          values: ['Stacaravan','Vakantietent']
+        }
+      ]
+  }
+
+  let folders = [];
+  let arr = [];
+  for(let i = 0; i < accommodationTypes.length; i++) {
+      const accommodationType = accommodationTypes[i].type;
+      const filterMap  = data[lang].find((d) => d.values.includes(accommodationType));
+      if(filterMap) {
+        if(!folders.includes(filterMap.type)) {
+          folders.push(filterMap.type)
+        }
+        arr.push({
+          objectId: accommodationTypes[i].objectId,
+          type: filterMap.type
+        })
+      }
+  }
+  return {
+     folders,
+     accommodationTypes: arr
+  }
+}
+
+
 const extractContent = async() => {
 
   let loadingMessage = 'Downloading';
@@ -1107,6 +1162,8 @@ const extractContent = async() => {
       return;
     }
 
+    const cultureCode =  argv.cultureCode ? argv.cultureCode : 'en';
+
      
       const parkDetails = await getExtractContent('', authToken, parkId, 'parks' )
 
@@ -1117,39 +1174,39 @@ const extractContent = async() => {
         return;
       }
 
-      const parkDetailsPages = await getParkDetailsPages('en')
+      const parkDetailsPages = await getParkDetailsPages(cultureCode)
   
       let contentMigration = [];
       
       // demo park site is not working
-      if(parkDetailsPages) {
-        const findPark = parkDetailsPages.find((p) => p.Id == parkId);
-        if(findPark) {
-          const url =   new URL(findPark.Url);
-          const pathSegments = url.pathname.split('/').filter(segment => segment !== ''); // Split and filter out empty segments
-          const slug = pathSegments.pop(); //
-          if(slug) {
-            const enContent = await getMigrationContent('en', parkId, authToken, slug);
-            const nlContent = await getMigrationContent('nl', parkId, authToken, slug);
-            const deContent = await getMigrationContent('de', parkId, authToken, slug);
-            const frContent = await getMigrationContent('fr', parkId, authToken, slug);
-            contentMigration = [
-              {
-                file: `${PARK_PATH}/ContentMigration_P${parkId}.json`, 
-                data: {
-                  en: enContent,
-                  nl: nlContent,
-                  de: deContent,
-                  fr: frContent
-                }
-              }
-            ]
+      // if(parkDetailsPages) {
+      //   const findPark = parkDetailsPages.find((p) => p.Id == parkId);
+      //   if(findPark) {
+      //     const url =   new URL(findPark.Url);
+      //     const pathSegments = url.pathname.split('/').filter(segment => segment !== ''); // Split and filter out empty segments
+      //     const slug = pathSegments.pop(); //
+      //     if(slug) {
+      //       const enContent = await getMigrationContent('en', parkId, authToken, slug);
+      //       const nlContent = await getMigrationContent('nl', parkId, authToken, slug);
+      //       const deContent = await getMigrationContent('de', parkId, authToken, slug);
+      //       const frContent = await getMigrationContent('fr', parkId, authToken, slug);
+      //       contentMigration = [
+      //         {
+      //           file: `${PARK_PATH}/ContentMigration_P${parkId}.json`, 
+      //           data: {
+      //             en: enContent,
+      //             nl: nlContent,
+      //             de: deContent,
+      //             fr: frContent
+      //           }
+      //         }
+      //       ]
   
-          }
-        }
-      }
+      //     } 
+      //   }
+      // }
     
-      const allAcommodationDetails = await getExtractContent('', authToken, parkId, 'accommodations' ) 
+      let allAcommodationDetails = await getExtractContent('', authToken, parkId, 'accommodations' ) 
       
       const allImagesDetails = await getExtractContent('', authToken, parkId, 'images' ) 
   
@@ -1157,34 +1214,65 @@ const extractContent = async() => {
   
       const openingTimesItems = await getMoreItems('', openingTimes.items, authToken, openingTimes?.page?.numpages , 'getOpenTimes')
   
-      const vicinities = await getVicinities(authToken, parkId, 'en')
+      const vicinities = await getVicinities(authToken, parkId, cultureCode)
   
-      const activities = await getActivities(authToken, parkId, false, 'en', 1 )
+      const activities = await getActivities(authToken, parkId, false, cultureCode, 1 )
   
       const activitiesItems = await getMoreItems('', activities.items, authToken, activities?.page?.numpages , 'getActivities')
       
   
       let accommodationObjectIds = []
+
+      let accommodationTypes = [];
+
+      
+      const filterAcommodationDetails = allAcommodationDetails.items?.filter((a) => {
+        return !a.deleted
+      });
   
-      if(allAcommodationDetails && allAcommodationDetails.items?.length > 0) {
-          accommodationObjectIds = allAcommodationDetails.items.map((a) => {
+      if(filterAcommodationDetails?.length > 0) {
+
+        
+          accommodationObjectIds = filterAcommodationDetails.map((a) => {
             return a.objectId;
           });
+          accommodationTypes = filterAcommodationDetails.map((a) => {
+            const properties = a?.properties;
+            const findObjectType = properties.find((p) => p.sysname === 'object_type')
+            const findObjectTypeLang = findObjectType?.lang.find((l) => l.language === cultureCode);
+            let value = '';
+            if(findObjectTypeLang) {
+               value = findObjectTypeLang.value;
+            }
+            return {
+              type: value,
+              objectId: a.objectId
+            }
+          });
       }
-  
+
+      const accGroupeFolder = getAccomodationPath(cultureCode, accommodationTypes)
+
+      const accommodationTypesData = accGroupeFolder.accommodationTypes
+
+      const accommodationTypesFolder = accGroupeFolder.folders
+
+     
       let individualAccomodation = [];
   
-      if(accommodationObjectIds.length > 0) {
+      if(accommodationTypesData.length > 0) {
   
         const results = await Promise.all(accommodationObjectIds.map((u) => getExtractContent('', authToken, u, 'accommodation' )));
         
         if(results.length > 0) {
-          individualAccomodation = accommodationObjectIds.map((acc, index) => {
+          individualAccomodation = accommodationTypesData.map((a, index) => {
             const ad = results[index]
+            const acc = a.objectId;
+            const type = a.type;
             return {
-              file: `${ACC_PATH}/Accommodation_${acc}/Accommodation_P${parkId}_A${acc}.json`, 
+              file: `${ACC_PATH}/${type}/Accommodation_${acc}/Accommodation_P${parkId}_A${acc}.json`, 
               data: ad,
-              folder: `${ACC_PATH}/Accommodation_${acc}`
+              folder: `${ACC_PATH}/${type}/Accommodation_${acc}`
             }
           })
         }
@@ -1192,23 +1280,27 @@ const extractContent = async() => {
   
   
       let allImagesAcc = [];
+
+     
   
-      if(accommodationObjectIds.length > 0) {
+      if(accommodationTypesData.length > 0) {
         const results = await Promise.all(accommodationObjectIds.map((u) => getExtractContent('', authToken, u, 'images' )));
         if(results.length > 0) {
-          allImagesAcc = await Promise.all(accommodationObjectIds.map(
-            async(acc, index) => {
+          allImagesAcc = await Promise.all(accommodationTypesData.map(
+            async(a, index) => {
             const ad = results[index]
+            const acc = a.objectId;
+            const type = a.type;
             let items = []
             if(ad) {
                items =  await getMoreItems('', ad.items, authToken, ad?.page?.numpages , 'images', acc)
             }
             return {
-              file: `${ACC_PATH}/Accommodation_${acc}/ALlAccommodationImage_P${parkId}_A${acc}.json`, 
+              file: `${ACC_PATH}/${type}/Accommodation_${acc}/ALlAccommodationImage_P${parkId}_A${acc}.json`, 
               data: {
                 items
               },
-              folder: `${ACC_PATH}/Accommodation_${acc}`
+              folder: `${ACC_PATH}/${type}/Accommodation_${acc}`
             }
           }))
         }
@@ -1256,6 +1348,8 @@ const extractContent = async() => {
 
       const postHarFolderName = `${folderName}/Post_Harmonization/Park_${parkId}`
 
+      const postStiboFolderName = `${folderName}/Park and Accommodation for Stibo`;
+
       await deleteFolderIfExists(folderName);
 
       createFolder(folderName, false);
@@ -1274,12 +1368,22 @@ const extractContent = async() => {
 
       createFolder(`${folderName}/LOV_Stibo`, false);
 
-      createFolder(`${folderName}/Park and Accomodation for Stibo`, false);
+      createFolder(`${postStiboFolderName}`, false);
+
+      createFolder(`${postStiboFolderName}/Park_${parkId}`, false)
 
       const childFolders = [...individualAccomodation, ...allImagesAcc]
 
       const existAcc = [];
 
+      for(let i = 0; i < accommodationTypesFolder.length; i++ ) {
+        createFolder(`${parkFolderName}/${ACC_PATH}/${accommodationTypesFolder[i]}`, false);
+        createFolder(`${preHarFolderName}/${ACC_PATH}/${accommodationTypesFolder[i]}`, false);
+        //createFolder(`${postHarFolderName}/${ACC_PATH}/${accommodationTypesFolder[i]}`, false);
+        // createFolder(`${postStiboFolderName}/${accommodationTypesFolder[i]}`, false);
+      }
+
+     
       for(let acc = 0; acc < childFolders.length; acc++) {
         const ad = childFolders[acc];
         if(ad.folder && !existAcc.includes(ad.folder)) {
@@ -1297,21 +1401,21 @@ const extractContent = async() => {
         }
       }
 
-      const existPostAcc = [];
-      for(let acc = 0; acc < childFolders.length; acc++) {
-        const ad = childFolders[acc];
-        if(ad.folder && !existPostAcc.includes(ad.folder)) {
-          createChildFolder(`${postHarFolderName}/${ad.folder}`);
-          existPostAcc.push(ad.folder)
-        }
-      }
+      // const existPostAcc = [];
+      // for(let acc = 0; acc < childFolders.length; acc++) {
+      //   const ad = childFolders[acc];
+      //   if(ad.folder && !existPostAcc.includes(ad.folder)) {
+      //     createChildFolder(`${postHarFolderName}/${ad.folder}`);
+      //     existPostAcc.push(ad.folder)
+      //   }
+      // }
 
       
       await fetchDataAndWriteFiles(files, parkFolderName);
 
-      await fetchDataAndWriteFiles(files, preHarFolderName);
+      //await fetchDataAndWriteFiles(files, preHarFolderName);
 
-      await fetchDataAndWriteFiles(files, postHarFolderName);
+      // await fetchDataAndWriteFiles(files, postHarFolderName);
 
       console.log(`Folder created: ${folderName}`);
 
