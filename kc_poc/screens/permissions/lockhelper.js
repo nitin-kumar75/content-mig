@@ -28,64 +28,7 @@ class LockBluetoothHelper {
         }
     }
 
-    base64ToUint8Array(base64) {
-        const binaryString = atob(base64); // Decode base64 string into a binary string
-        const byteArray = new Uint8Array(binaryString.length);
-      
-        for (let i = 0; i < binaryString.length; i++) {
-          byteArray[i] = binaryString.charCodeAt(i);
-        }
-      
-        return byteArray;
-    }
-      
-    mergeLsb(bytes) {
-        // Merge bytes to the appropriate lock ID format
-        return (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
-    }
-      
-    handleManufacturerData(device, ourLockId)  {
-      
-        const manufacturerData = device.manufacturerData;
-
-        console.log("manufacturerData -- ", manufacturerData, ourLockId)
-        if(manufacturerData !== null){
-
-          let data = this.base64ToUint8Array(manufacturerData); 
-      
-          let index = 0;
-      
-          // Parse manufacturer code (2 bytes)
-          const manuCode = data[index++] + (data[index++] << 8);
-      
-          
-          if(manuCode == MANUCODE) {
-
-              const version = data[index++];
-              const deviceType = data[index++]
-              const lockNumber = data[index++] + (data[index++] << 8);
-        
-      
-              const lockId = new DataView(Uint8Array.from(data.slice(index, index + 4)).buffer).getUint32(0, true);
-      
-                if(ourLockId == lockId){
-                  return {
-                    id: device.id,
-                    name: device.name,
-                    manuCode: manuCode,
-                    version: version,
-                    deviceType,
-                    lockNumber,
-                    lockId,
-                    manuData: manufacturerData
-                  
-                } } else{
-                 return null;
-                }
-        }}
-      
-        return null;
-      }
+    
 
     async startConnection() {
         try {
