@@ -26,7 +26,7 @@ const Device = ({ route }) => {
         }
     };
 
-    const base64ToUint8Array(base64) => {
+    const base64ToUint8Array = (base64) => {
         const binaryString = atob(base64); // Decode base64 string into a binary string
         const byteArray = new Uint8Array(binaryString.length);
       
@@ -37,12 +37,12 @@ const Device = ({ route }) => {
         return byteArray;
     }
       
-    const mergeLsb(bytes) => {
+    const mergeLsb = (bytes) => {
         // Merge bytes to the appropriate lock ID format
         return (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
     }
       
-    const handleManufacturerData(device, ourLockId) => {
+    const handleManufacturerData = (device, ourLockId) => {
       
         const manufacturerData = device.manufacturerData;
 
