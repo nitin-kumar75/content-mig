@@ -1178,33 +1178,32 @@ const extractContent = async() => {
   
       let contentMigration = [];
       
-      // demo park site is not working
-      // if(parkDetailsPages) {
-      //   const findPark = parkDetailsPages.find((p) => p.Id == parkId);
-      //   if(findPark) {
-      //     const url =   new URL(findPark.Url);
-      //     const pathSegments = url.pathname.split('/').filter(segment => segment !== ''); // Split and filter out empty segments
-      //     const slug = pathSegments.pop(); //
-      //     if(slug) {
-      //       const enContent = await getMigrationContent('en', parkId, authToken, slug);
-      //       const nlContent = await getMigrationContent('nl', parkId, authToken, slug);
-      //       const deContent = await getMigrationContent('de', parkId, authToken, slug);
-      //       const frContent = await getMigrationContent('fr', parkId, authToken, slug);
-      //       contentMigration = [
-      //         {
-      //           file: `${PARK_PATH}/ContentMigration_P${parkId}.json`, 
-      //           data: {
-      //             en: enContent,
-      //             nl: nlContent,
-      //             de: deContent,
-      //             fr: frContent
-      //           }
-      //         }
-      //       ]
+      if(parkDetailsPages) {
+        const findPark = parkDetailsPages.find((p) => p.Id == parkId);
+        if(findPark) {
+          const url =   new URL(findPark.Url);
+          const pathSegments = url.pathname.split('/').filter(segment => segment !== ''); // Split and filter out empty segments
+          const slug = pathSegments.pop(); //
+          if(slug) {
+            const enContent = await getMigrationContent('en', parkId, authToken, slug);
+            const nlContent = await getMigrationContent('nl', parkId, authToken, slug);
+            const deContent = await getMigrationContent('de', parkId, authToken, slug);
+            const frContent = await getMigrationContent('fr', parkId, authToken, slug);
+            contentMigration = [
+              {
+                file: `${PARK_PATH}/ContentMigration_P${parkId}.json`, 
+                data: {
+                  en: enContent,
+                  nl: nlContent,
+                  de: deContent,
+                  fr: frContent
+                }
+              }
+            ]
   
-      //     } 
-      //   }
-      // }
+          } 
+        }
+      }
     
       let allAcommodationDetails = await getExtractContent('', authToken, parkId, 'accommodations' ) 
       

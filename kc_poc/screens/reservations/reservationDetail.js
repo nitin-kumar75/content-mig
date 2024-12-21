@@ -76,7 +76,7 @@ const ReservationDetails = ({ route, parkId }) => {
       const response = await axios.get(`http://3.108.61.39:8080/digital-key?reservationNumber=${reservationNumber}`, {
       });
 
-      navigation.navigate('permission1',{
+      navigation.navigate('permission2',{
         data: response.data,
       })
       
