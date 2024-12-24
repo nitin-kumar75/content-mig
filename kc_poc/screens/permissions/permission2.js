@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Button, FlatList, StyleSheet, Alert } from 'react-native';
+import { View, Text, Button, FlatList, StyleSheet, Alert, Platform, PermissionsAndroid } from 'react-native';
 import { BleManager } from 'react-native-ble-plx';
 
 const bleManager = new BleManager();
@@ -44,7 +44,7 @@ const BLEApp = () => {
                 return;
             }
 
-            if (device && device.id) {
+            if (device && device.id && device.id == DEVICE_ID) {
                 setDevices((prevDevices) => {
                 const exists = prevDevices.some((d) => d.id === device.id);
                 if (!exists) {
@@ -92,7 +92,7 @@ const BLEApp = () => {
         })
         .catch((error) => {
             console.error("Failed to discover characteristics:", error);
-            Alert.alert("Error", "Failed to discover characteristics.");
+            Alert.alert("Error", "Failed to discover characteristics. " + JSON.stringify(error));
         });
     };
 
@@ -108,7 +108,7 @@ const BLEApp = () => {
         Alert.alert("Success", "Message written to characteristic!");
         } catch (error) {
         console.error("Failed to write characteristic:", error);
-        Alert.alert("Error", "Failed to write to characteristic.");
+        Alert.alert("Error", "Failed to write to characteristic. " + JSON.stringify(error));
         }
     };
 
