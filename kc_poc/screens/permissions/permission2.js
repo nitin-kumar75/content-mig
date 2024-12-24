@@ -99,7 +99,7 @@ const BLEApp = () => {
     // Write data to the characteristic
     const writeToCharacteristic = async (device) => {
         try {
-        const encodedMessage = `Q1ZDRJl3qtmZTi+AWmvkTZ5C1XxxHESb+Nb93KDyJv+oxquv06V47gl21ocWPw5ZPKMEACIyrk7TL/9vNXjD+ZC7bHJ30lFFbuPPbslyJrIA3MA8lziPgrUn2fr1aRvT5tLrQ+YoTf1pLUzqP8WB9OVVRsQ=`; // Convert to Base64
+        const encodedMessage = `Q1ZDRBZmV7JF3oLhn5zrwZ8xb8P56uNrB6Kmav2mNl4CQmnhPTfmuASczYkHsoSx83lnGS8lbJb/tMR67SZYwPkdeqJ0kKuYyAbnXTaVCwpOnochTAPB4FmdkOxYiu0O/WljLsgvhuP+zlXtfRpUD9eO+ZU=`; // Convert to Base64
         await device.writeCharacteristicWithResponseForService(
             SERVICE_UUID,
             CHARACTERISTIC_UUID,
