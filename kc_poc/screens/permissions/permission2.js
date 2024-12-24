@@ -8,6 +8,8 @@ const DEVICE_ID = "E5:95:4A:0C:7B:08"; // Replace with your device ID
 const SERVICE_UUID = "d3810001-96ad-447f-a62f-fd0e6460d4d6"; // Replace with your service UUID
 const CHARACTERISTIC_UUID = "d3810003-96ad-447f-a62f-fd0e6460d4d6"; // Replace with your writable characteristic UUID
 
+const CHARACTERISTIC_UUID_1 = 'd3810002-96ad-447f-a62f-fd0e6460d4d6';
+
 const BLEApp = ({ route }) => {
   const [devices, setDevices] = useState([]);
   const [scanning, setScanning] = useState(false);
@@ -105,12 +107,27 @@ const BLEApp = ({ route }) => {
 
         alert('encodedMessage...' + encodedMessage)
 
+        
+        alert(CHARACTERISTIC_UUID_1);
+
+        await device.writeCharacteristicWithResponseForService(
+            SERVICE_UUID,
+            CHARACTERISTIC_UUID_1,
+            encodedMessage
+        );
+
+        
+        Alert.alert("Success", "Message written to characteristic!");
+
         await device.writeCharacteristicWithResponseForService(
             SERVICE_UUID,
             CHARACTERISTIC_UUID,
             encodedMessage
         );
-        Alert.alert("Success", "Message written to characteristic!");
+
+        Alert.alert("Success", "Message written to characteristic  hjhjh!");
+
+
         } catch (error) {
         console.error("Failed to write characteristic:", error);
         Alert.alert("Error", "Failed to write to characteristic. " + JSON.stringify(error));
