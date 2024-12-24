@@ -8,10 +8,11 @@ const DEVICE_ID = "E5:95:4A:0C:7B:08"; // Replace with your device ID
 const SERVICE_UUID = "d3810001-96ad-447f-a62f-fd0e6460d4d6"; // Replace with your service UUID
 const CHARACTERISTIC_UUID = "d3810003-96ad-447f-a62f-fd0e6460d4d6"; // Replace with your writable characteristic UUID
 
-const BLEApp = () => {
+const BLEApp = ({ route }) => {
   const [devices, setDevices] = useState([]);
   const [scanning, setScanning] = useState(false);
   const [connectedDevice, setConnectedDevice] = useState(null);
+  const { data } = route.params;
 
     useEffect(() => {
             if (Platform.OS === 'android') requestPermissions();
@@ -99,7 +100,11 @@ const BLEApp = () => {
     // Write data to the characteristic
     const writeToCharacteristic = async (device) => {
         try {
-        const encodedMessage = `Q1ZDRBZmV7JF3oLhn5zrwZ8xb8P56uNrB6Kmav2mNl4CQmnhPTfmuASczYkHsoSx83lnGS8lbJb/tMR67SZYwPkdeqJ0kKuYyAbnXTaVCwpOnochTAPB4FmdkOxYiu0O/WljLsgvhuP+zlXtfRpUD9eO+ZU=`; // Convert to Base64
+
+        const encodedMessage = data?.Tokens[0];
+
+        alert('encodedMessage...' + encodedMessage)
+
         await device.writeCharacteristicWithResponseForService(
             SERVICE_UUID,
             CHARACTERISTIC_UUID,
