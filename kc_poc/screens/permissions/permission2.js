@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Button, FlatList, StyleSheet, Alert, Platform, PermissionsAndroid } from 'react-native';
 import { BleManager } from 'react-native-ble-plx';
+import BytesHelper  from './bytehelper'
+import base64 from 'react-native-base64';
 
 const bleManager = new BleManager();
 
@@ -99,30 +101,39 @@ const BLEApp = ({ route }) => {
         });
     };
 
+
+    const uint8ArrayToBase64 = (uint8Array) => {
+        let binary = '';
+        for (let i = 0; i < uint8Array.length; i++) {
+          binary += String.fromCharCode(uint8Array[i]);
+        }
+        return base64.encode(binary)
+    }
+
     // Write data to the characteristic
     const writeToCharacteristic = async (device) => {
         try {
 
-        const encodedMessage = data?.Tokens[0];
-
-        alert('encodedMessage...' + encodedMessage)
+        const token = data?.Tokens[0];
 
         
-        alert(CHARACTERISTIC_UUID_1);
 
-        await device.writeCharacteristicWithResponseForService(
-            SERVICE_UUID,
-            CHARACTERISTIC_UUID_1,
-            encodedMessage
-        );
+        const encodedMessage = Uint8Array.from(base64.decode(token), char => char.charCodeAt(0));
+
+        const updateToken = BytesHelper.convertToOutput(encodedMessage)
+
+        alert('updateToken...', updateToken)
+
+        const t = uint8ArrayToBase64(updateToken);
+        
+
+        alert('chalga...' + t)
 
         
-        Alert.alert("Success", "Message written to characteristic!");
-
         await device.writeCharacteristicWithResponseForService(
             SERVICE_UUID,
             CHARACTERISTIC_UUID,
-            encodedMessage
+            t
         );
 
         Alert.alert("Success", "Message written to characteristic  hjhjh!");
